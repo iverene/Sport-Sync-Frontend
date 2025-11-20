@@ -1,1 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@300;400;600;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+    /* Whites & Grays */
+    --color-offWhite: #F0F4F8;
+    --color-softWhite: #FAFAFA;
+    --color-charcoalBlack: #1E1E1E;
+    --color-slateGray: #5A6A78;
+    --color-lightGray: #E1E8F0;
+
+    /* Blues */
+    --color-deepBlue: #004B8D;
+    --color-navyBlue: #002B50;
+    --color-lightBlue: #0A6DDC;
+
+    /* Accent Colors */
+    --color-vibrantGreen: #2ECC40;
+    --color-crimsonRed: #E74C3C;
+    --color-amberOrange: #F39C12;
+
+    /* Blue Tints */
+    --color-blueSlate: #BCD3E4;
+    --color-blueGray: #D4E0EB;
+    --color-blueTinted: #E7F0F7;
+    --color-whiteMist: #F4F8FB;
+
+    /* Fonts */
+    --font-heading: "Montserrat", sans-serif;
+    --font-body: "Inter", sans-serif;
+}
+
+@layer base {
+    * {
+        @apply text-charcoalBlack font-body m-0 p-0 box-border;
+    }
+}

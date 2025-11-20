@@ -1,10 +1,8 @@
 // USERS
 export const users = [
-  { id: 1, full_name: "Alice Johnson", username: "alicej", password: "pass123", role: "Admin", email: "alice@example.com", status: "Active" },
+  { id: 1, full_name: "Iverene Grace", username: "iverene", password: "pass123", role: "Admin", email: "iverene@example.com", status: "Active" },
   { id: 2, full_name: "Bob Smith", username: "bobsmith", password: "pass123", role: "Staff", email: "bob@example.com", status: "Active" },
   { id: 3, full_name: "Charlie Cruz", username: "charliec", password: "pass123", role: "Cashier", email: "charlie@example.com", status: "Active" },
-  { id: 4, full_name: "Diana Lee", username: "dianal", password: "pass123", role: "Staff", email: "diana@example.com", status: "Active" },
-  { id: 5, full_name: "Ethan Park", username: "ethanp", password: "pass123", role: "Cashier", email: "ethan@example.com", status: "Active" },
 ];
 
 // CATEGORIES
