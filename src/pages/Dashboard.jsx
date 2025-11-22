@@ -17,7 +17,11 @@ import {
   percentChange,
   countLowStock,
   countOutOfStock,
+  todayCategoryNames,
+  todayCategoryVolumeValues,
+  todayCategoryRevenueValues,
   weeklyLabels,
+  weeklyVolume,
   weeklyRevenue,
   getCategoryMap,
   getStockAlerts,
@@ -99,6 +103,102 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        	<Chart
+          type="bar"
+          title="Today's Sales Volume by Category"
+          categories={todayCategoryNames}
+          series={[{ name: "Sales Volume", data: todayCategoryVolumeValues }]}
+          height={320}
+        />
+        <Chart
+          type="bar"
+          title="Today's Revenue by Category"
+          categories={todayCategoryNames}
+          series={[{ name: "Sales Revenue", data: todayCategoryRevenueValues }]}
+          height={320}
+        />
+        <Chart
+          type="bar"
+          title="Weekly Sales Volume"
+          categories={weeklyLabels}
+          series={[{ name: "Volume", data: weeklyVolume }]}
+          height={320}
+        />
+        <Chart
+          type="bar"
+          title="Weekly Sales Revenue"
+          categories={weeklyLabels}
+          series={[{ name: "Revenue", data: weeklyRevenue }]}
+          height={320}
+        />
+
+        {/* Top 10 Selling Products Card */}
+        <div className="p-6 rounded-xl border border-gray-200 shadow-sm bg-white">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              Top 10 Selling Products <TrendingUp size={20} />
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {topSelling.map((p, index) => (
+              <div
+                key={p.id}
+                className="flex justify-between items-center p-2 rounded-md border border-gray-100"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="w-8 h-8 flex items-center justify-center text-charcoalBlack bg-lightGray font-semibold rounded-full">
+                    {index + 1}
+                  </span>
+
+                  <div>
+                    <p className="font-semibold">{p.product_name}</p>
+                    <p className="text-sm text-gray-500">
+                      {categoryMap[p.category_id]}
+                    </p>
+                  </div>
+                </div>
+                <span className="font-semibold text-gray-700">
+                  {p.soldQuantity} Sold
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-6">
+          {/* Stock Alerts Card */}
+          <div className="p-6 rounded-xl border border-gray-200 shadow-sm bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                Stock Alerts <AlertCircle size={20} />
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {stockAlerts.length === 0 ? (
+                <p className="text-gray-500">No stock alerts.</p>
+              ) : (
+                stockAlerts.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex justify-between items-center p-2 rounded-md border border-gray-100"
+                  >
+                    <div>
+                      <p className="font-semibold">{p.product_name}</p>
+                      <p className="text-sm text-gray-500">
+                        {categoryMap[p.category_id]}
+                      </p>
+                    </div>
+                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      Out of Stock
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      
+
+
       </div>
     </Layout>
   );

@@ -19,7 +19,7 @@ export default function Chart({ type = "bar", series = [], categories = [], heig
     colors: ["#004B8D"],
     plotOptions: {
       bar: {
-        borderRadius: 10,
+        borderRadius: 5,
         columnWidth: "35%",
         endingShape: "rounded",
         distributed: false,

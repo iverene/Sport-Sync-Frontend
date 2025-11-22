@@ -19,7 +19,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-navyBlue text-softWhite flex flex-col justify-between m-3 p-5 rounded-2xl">
+    <aside className="sticky top-0 left-0  w-64 h-[calc(100vh-2rem)] bg-navyBlue text-softWhite flex flex-col justify-between m-3 p-5 rounded-2xl">
       <div>
         <div className="mb-10 flex items-center justify-center">
           <img src={logo} alt="Logo" className="w-25 h-auto object-contain" />
