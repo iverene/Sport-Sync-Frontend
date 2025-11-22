@@ -20,6 +20,13 @@ export default function Navbar() {
       <h2 className="text-lg font-semibold pl-2">Welcome, {user?.full_name}</h2>
 
       <div className="flex items-center gap-4">
+        {/* User Info */}
+        <button
+          onClick={() => navigate("/profile")}
+          className="flex items-center gap-2 px-3 py-1 border border-gray-200 rounded-full hover:bg-gray-100 transition"
+        >
+          <span className="text-sm font-medium text-gray-800">{user.full_name}</span>
+        </button>
 
         <div className="relative">
           <button

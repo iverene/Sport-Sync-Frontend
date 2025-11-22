@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import POS from "./pages/POS";
 import Inventory from "./pages/Inventory";
@@ -17,6 +18,15 @@ export default function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Protected Routes */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["Admin","Staff","Cashier"]}>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={
