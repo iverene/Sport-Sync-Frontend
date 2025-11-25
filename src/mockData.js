@@ -66,6 +66,24 @@ export const transactions = Array.from({ length: 50 }, (_, i) => {
   };
 });
 
+// Cart Items
+export const mockCartItems = [
+  {
+    id: 1,
+    name: "Nike Soccer Cleats",
+    price: 1200,
+    quantity: 1,
+  },
+  {
+    id: 2,
+    name: "Adidas Running Shirt",
+    price: 600,
+    quantity: 2,
+  },
+];
+
+
+
 // SALES SUMMARY 
 export const sales = {
   daily: Array.from({ length: 10 }, (_, i) => {
@@ -86,6 +104,34 @@ export const sales = {
     { year: 2025, revenue: transactions.reduce((a, t) => a + t.total_amount, 0), volume: transactions.reduce((a, t) => a + t.quantity, 0) },
   ],
 };
+
+// Auto-Generated Reports
+export const mockReports = [
+  {
+    type: "Daily Report",
+    date: "November 25, 2025",
+  },
+  {
+    type: "Daily Report",
+    date: "November 24, 2025",
+  },
+  {
+    type: "Weekly Report",
+    weekRange: "Nov 17 – Nov 23, 2025",
+  },
+  {
+    type: "Weekly Report",
+    weekRange: "Nov 10 – Nov 16, 2025",
+  },
+  {
+    type: "Monthly Report",
+    month: "November 2025",
+  },
+  {
+    type: "Monthly Report",
+    month: "October 2025",
+  },
+];
 
 // Notifications
 export const notifications = [

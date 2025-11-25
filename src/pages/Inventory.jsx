@@ -8,6 +8,7 @@ import { Edit, PlusCircle } from "lucide-react";
 import { Package, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 
 
+
 export default function Inventory() {
   const { user } = useAuth();
   const categoryMap = getCategoryMap(categories);
@@ -125,6 +126,7 @@ export default function Inventory() {
         />
 
       </div>
+
     </Layout>
   );
 };
