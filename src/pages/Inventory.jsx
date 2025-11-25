@@ -1,10 +1,14 @@
 import Layout from "../components/Layout";
 import { Package, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 
+
+
 export default function Inventory() {
   
   return (
     <Layout>
+      <h1 className="page-title">Inventory</h1>
+   
 <div className="min-h-screen bg-softWhite p-6">
       {/* Header Section */}
       <div className="mb-8">
