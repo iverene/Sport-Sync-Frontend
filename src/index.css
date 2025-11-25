@@ -9,10 +9,13 @@
     --color-slateGray: #5A6A78;
     --color-lightGray: #E1E8F0;
 
-    /* Blues */
+    /* Brand Colors */
     --color-deepBlue: #004B8D;
     --color-navyBlue: #002B50;
     --color-lightBlue: #0A6DDC;
+    --color-darkGreen: #1f781a;
+
+    
 
     /* Accent Colors */
     --color-vibrantGreen: #2ECC40;
@@ -39,7 +42,7 @@
 
 @layer components {
     .page-title {
-        @apply text-2xl font-body font-semibold mb-6;
+        @apply text-3xl font-bold text-charcoalBlack mb-2;
     }
 }
 

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Layout from "../components/Layout";
-import CategoryButton from "../components/CategoryButton";
-import Product from '../components/Product.jsx';
+import CategoryButton from "../components/pos/CategoryButton.jsx";
+import Product from '../components/pos/Product.jsx';
 import { products, categories } from "../mockData";
+
 
 
 export default function POS() {
@@ -15,10 +16,16 @@ export default function POS() {
     <Layout>
       <div className="flex gap-6 w-full">
 
+        
+
         {/* LEFT SIDE */}
         <div className="flex-1 flex flex-col gap-4">
 
+          <div className="flex justify-between items-center">
+            {/* Insert Search and Scanner component here */}
+          </div>
 
+          
 
           {/* Categories */}
           <div className="flex justify-between overflow-x-auto pb-1 w-full">
@@ -40,6 +47,8 @@ export default function POS() {
           </div>
           
         </div>
+
+        
 
         
 

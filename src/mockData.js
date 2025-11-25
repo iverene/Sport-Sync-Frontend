@@ -66,6 +66,7 @@ export const transactions = Array.from({ length: 50 }, (_, i) => {
   };
 });
 
+
 // SALES SUMMARY 
 export const sales = {
   daily: Array.from({ length: 10 }, (_, i) => {

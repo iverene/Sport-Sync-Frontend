@@ -7,12 +7,9 @@ export default function Inventory() {
   
   return (
     <Layout>
-      <h1 className="page-title">Inventory</h1>
-   
-<div className="min-h-screen bg-softWhite p-6">
       {/* Header Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="page-title">
           Inventory
         </h1>
         <p className="text-gray-600">
@@ -58,7 +55,7 @@ export default function Inventory() {
           <p className="text-2xl font-bold text-gray-900">₱0</p>
         </div>
       </div>
-    </div>
+
     </Layout>
   );
 }

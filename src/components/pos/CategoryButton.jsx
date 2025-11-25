@@ -30,7 +30,7 @@ export default function CategoryButton({ categories, active, onSelect }) {
               transition
               ${isActive 
                 ? "bg-navyBlue text-softWhite border-gray-300 shadow-md" 
-                : "bg-softWhite border-gray-300 text-charcoalBlack hover:bg-deepBlue hover:text-softWhite"}
+                : "bg-softWhite border-gray-300 text-charcoalBlack hover:bg-darkGreen hover:text-softWhite"}
             `}
           >
             <Icon size={22} />
