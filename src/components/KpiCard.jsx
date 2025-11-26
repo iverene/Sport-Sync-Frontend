@@ -1,7 +1,7 @@
 export default function KpiCard({ bgColor, title, icon, value, description }) {
   return (
     <div
-      className={`flex items-start justify-between gap-4 p-6 rounded-xl shadow-md text-navyBlue`}
+      className={`flex items-start justify-between gap-4 p-6 rounded-xl shadow-md text-navyBlue transform transition-transform duration-200 hover:scale-105`}
       style={{ backgroundColor: bgColor }}
     >
       
