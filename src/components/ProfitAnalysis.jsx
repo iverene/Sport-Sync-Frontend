@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, X, Download } from 'lucide-react';
+import { TrendingUp, X } from 'lucide-react';
 
 export default function ProfitAnalysisButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -202,7 +202,7 @@ export default function ProfitAnalysisButton() {
                           </span>
                           <div className="flex-1 bg-blue-100 rounded-full h-2 w-20">
                             <div
-                              className="bg-gradient-to-r from-blue-600 to-blue-900 h-2 rounded-full transition-all duration-300"
+                              className="bg-linear-to-r from-blue-600 to-blue-900 h-2 rounded-full transition-all duration-300"
                               style={{ width: getProgressWidth(product.marginPercent) }}
                             ></div>
                           </div>

@@ -24,7 +24,7 @@ export default function Product({ product }) {
         >
           {product.quantity} in stock
         </span>
-        <button className="px-3 py-1 bg-navyBlue text-white rounded flex items-center space-x-1 hover:bg-deepBlue transition">
+        <button className="px-3 py-1 bg-navyBlue text-white rounded flex items-center space-x-1 hover:bg-darkGreen transition">
           <Plus size={14} />
         </button>
       </div>

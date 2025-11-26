@@ -14,23 +14,23 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
 
   return (
     <div className="p-6 rounded-xl border border-gray-200 shadow-sm bg-white overflow-x-auto">
-      {tableName && <h3 className="text-lg font-semibold mb-4">{tableName}</h3>}
+      {tableName && <h3 className="text-lg text-gray-800 font-semibold mb-4">{tableName}</h3>}
 
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-blueSlate ">
+      <table className="min-w-full divide-y divide-gray-400">
+        <thead>
           <tr>
             {columns.map((col, idx) => (
               <th
                 key={idx}
                 scope="col"
-                className="px-4 py-2 text-left text-xs font-semibold text-charcoalBlack uppercase tracking-wider"
+                className="px-4 py-2 text-left text-xs font-bold text-charcoalBlack uppercase tracking-wider"
               >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-white divide-y divide-gray-300">
           {currentData.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-2 text-center text-gray-400">
@@ -57,14 +57,14 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
             <button
                 onClick={goPrev}
                 disabled={currentPage === 1}
-                className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 flex items-center justify-center hover:bg-blueSlate"
+                className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 flex items-center justify-center hover:bg-darkGreen hover:text-softWhite"
             >
                 <ArrowLeft size={16} />
             </button>
             <button
                 onClick={goNext}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 flex items-center justify-center hover:bg-blueSlate"
+                className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 flex items-center justify-center hover:bg-darkGreen hover:text-softWhite"
             >
                 <ArrowRight size={16} />
             </button>
