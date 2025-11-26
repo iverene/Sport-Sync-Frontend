@@ -31,7 +31,7 @@ export default function Inventory() {
   const data = products.map((p) => ({
     Product: p.product_name,
     Category: categoryMap[p.category_id],
-    "Cost Price": `₱${parseFloat(p.cost_price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    "Cost Price": new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(p.cost_price),
     "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     Stock:
       p.quantity === 0 ? (
