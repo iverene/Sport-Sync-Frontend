@@ -1,0 +1,196 @@
+import React, { useState } from 'react';
+import { Plus, X, Users } from 'lucide-react';
+
+export default function UserManagementHeader() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    contactNumber: '',
+    address: '',
+    role: 'Cashier'
+  });
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Creating user:', { ...formData, active: isActive });
+    // Add your user creation logic here
+    setIsModalOpen(false);
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between ">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
+          <p className="text-slate-600 mt-1">Manage user accounts and permissions</p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-green-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 shadow-lg transition-all duration-200"
+        >
+          <Plus className="w-5 h-5" />
+          Add User
+        </button>
+      </div>
+
+      {/* Modal Overlay */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/40 bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b-4 border-blue-800 bg-blue-900">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Add New User</h2>
+                <p className="text-blue-100 text-sm mt-1">
+                  Create a new user account with appropriate role and permissions.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  placeholder="Enter full name"
+                  required
+                  className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
+                />
+              </div>
+
+              {/* Email  */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Email  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Enter email "
+                  required
+                  className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
+                />
+              </div>
+
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Username <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="contactNumber"
+                  value={formData.contactNumber}
+                  onChange={handleInputChange}
+                  placeholder="Enter Username"
+                  required
+                  className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
+                />
+              </div>
+
+                {/* Password */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Enter password"
+                  required
+                  className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
+                />
+              </div>
+
+
+              
+
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Role
+                </label>
+                <div className="relative">
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all appearance-none bg-slate-50 cursor-pointer"
+                  >
+                    <option value="Cashier">Admin</option>
+                    <option value="Admin">Staff</option>
+                    <option value="Staff">Cashier</option>
+                  </select>
+                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-700 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Active User Toggle */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsActive(!isActive)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    isActive ? 'bg-blue-900' : 'bg-slate-400'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${
+                      isActive ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span className="text-sm font-semibold text-slate-800">Active User</span>
+              </div>
+
+              {/* Default Password Info */}
+              <div className="bg-blue-100 border-2 border-blue-900 rounded-lg p-4">
+                <p className="text-sm text-slate-800">
+                  <span className="font-semibold text-blue-900">Default Password:</span>{' '}
+                  <span className="font-mono text-blue-800">password123</span>
+                </p>
+                <p className="text-xs text-slate-700 mt-1">
+                  User will be able to change this after first login.
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full bg-blue-800 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 shadow-lg transition-all duration-200"
+              >
+                Create User
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

@@ -72,8 +72,17 @@ export default function NotificationPanel() {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className="min-h-screen p-8 flex justify-center items-start">
+      <style>{`
+        body {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+          margin: 0;
+          padding: 0;
+        }
+      `}</style>
       <div className="relative">
         {/* Notification Panel */}
         <div className="w-96 bg-white rounded-xl shadow-2xl border border-blue-200 overflow-hidden">
@@ -106,7 +115,7 @@ export default function NotificationPanel() {
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto bg-transparent">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center text-slate-500">
                   <Bell className="w-12 h-12 mx-auto mb-3 text-blue-200" />

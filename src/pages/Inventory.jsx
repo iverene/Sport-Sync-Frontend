@@ -1,4 +1,5 @@
 import Layout from "../components/Layout";
+import ProfitAnalysis from "../components/ProfitAnalysis";
 import { Package, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 
 
@@ -59,7 +60,9 @@ export default function Inventory() {
         </div>
       </div>
     </div>
+    <ProfitAnalysis/>
     </Layout>
+    
   );
 }
 
