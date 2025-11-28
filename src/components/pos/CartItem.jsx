@@ -1,38 +1,60 @@
 import { Plus, Minus, Trash2 } from "lucide-react";
-import { mockCartItems } from "../../mockData";
 
-export default function CartItem() {
+export default function CartItem({ cart, onIncrease, onDecrease, onRemove }) {
   return (
-    <div className="flex flex-col gap-3">
-      {mockCartItems.map((item) => (
+    <div className="flex flex-col">
+      {cart.map((item) => (
         <div
           key={item.id}
-          className="bg-gray-50 p-3 rounded-lg border border-gray-200 w-full"
+          className="group flex flex-col gap-3 py-4 border-b border-gray-100 last:border-0"
         >
-          {/* Top: Name, Price, Delete */}
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex flex-col">
-              <span className="font-semibold text-gray-800">{item.name}</span>
-              <span className="text-gray-500 text-sm">₱{item.price}</span>
+          {/* Top Row: Name and Remove */}
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-semibold text-gray-800 text-sm leading-tight">
+                {item.product_name}
+              </h4>
+              <p className="text-xs text-gray-500 mt-1">
+                ₱{item.selling_price.toLocaleString()} / unit
+              </p>
             </div>
-            <button className="text-red-500 hover:text-red-600">
-              <Trash2 size={18} />
+            <button
+              onClick={() => onRemove(item.id)}
+              className="text-gray-300 hover:text-red-500 transition-colors p-1"
+            >
+              <Trash2 size={16} />
             </button>
           </div>
 
-          {/* Bottom: Quantity controls and total */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <button className="p-1 rounded-md bg-gray-200 hover:bg-gray-300">
-                <Minus size={16} />
+          {/* Bottom Row: Controls and Total */}
+          <div className="flex justify-between items-end">
+            
+            {/* Quantity Capsule */}
+            <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200 p-0.5">
+              <button
+                className="p-1.5 rounded-md hover:bg-white hover:shadow-sm text-gray-600 transition-all disabled:opacity-30"
+                onClick={() => onDecrease(item.id)}
+                disabled={item.quantity <= 1}
+              >
+                <Minus size={14} />
               </button>
-              <span className="px-2">{item.quantity}</span>
-              <button className="p-1 rounded-md bg-gray-200 hover:bg-gray-300">
-                <Plus size={16} />
+              
+              <span className="w-8 text-center text-sm font-semibold text-gray-700">
+                {item.quantity}
+              </span>
+              
+              <button
+                className="p-1.5 rounded-md hover:bg-white hover:shadow-sm text-navyBlue transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                onClick={() => onIncrease(item.id)}
+                disabled={item.quantity >= item.stock}
+              >
+                <Plus size={14} />
               </button>
             </div>
-            <span className="font-semibold text-gray-800">
-              ₱{item.price * item.quantity}
+
+            {/* Item Total */}
+            <span className="font-bold text-navyBlue text-base">
+              ₱{(item.selling_price * item.quantity).toLocaleString()}
             </span>
           </div>
         </div>

@@ -82,7 +82,7 @@ export default function InventoryReport() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Total Gross Profit */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#002B50"
           title="Total Gross Profit"
           icon={<TrendingUp />}
           value={<>₱7300.00</>}
@@ -90,7 +90,7 @@ export default function InventoryReport() {
 
         {/* Average Margin */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#0A6DDC"
           title="Average Margin"
           icon={<BarChart4/>}
           value={<>₱523,500.00</>}
@@ -98,7 +98,7 @@ export default function InventoryReport() {
 
         {/* Best Margin */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#1f781a"
           title="Best Margin"
           icon={<DollarSign  />}
           value={<>₱523,500.00</>}

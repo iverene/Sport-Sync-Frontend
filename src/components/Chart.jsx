@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import ReactApexChart from "react-apexcharts";
 
 export default function Chart({
@@ -7,347 +7,248 @@ export default function Chart({
   categories = [],
   height = 350,
   title = "",
-  colors,
+  filter = null, // <--- NEW PROP
 }) {
   const [mounted, setMounted] = useState(false);
   const [chartKey, setChartKey] = useState(0);
 
+  // BRAND PALETTE 
+  const brandPalette = [
+    "#002B50", "#1f781a", "#335573", "#4c9348", "#668096", "#79ae76"
+  ];
+
   useEffect(() => {
-    setTimeout(() => setMounted(true), 50);
+    const timer = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(timer);
   }, []);
-
-  const validateData = () => {
-    let validSeries = [];
-    let validCategories = [];
-
-    try {
-      if (Array.isArray(series)) {
-        if (type === "donut" || type === "pie") {
-          validSeries = series.filter(
-            (item) => typeof item === "number" && !isNaN(item)
-          );
-          if (validSeries.length === 0) {
-            validSeries = [1];
-          }
-        } else {
-          if (series.length > 0 && typeof series[0] === "number") {
-            validSeries = [
-              {
-                data: series.filter(
-                  (item) => typeof item === "number" && !isNaN(item)
-                ),
-              },
-            ];
-          } else if (series.length > 0 && series[0]?.data) {
-            validSeries = series.map((s) => ({
-              ...s,
-              data: Array.isArray(s.data)
-                ? s.data.filter(
-                    (item) => typeof item === "number" && !isNaN(item)
-                  )
-                : [],
-            }));
-          } else {
-            validSeries = [{ data: [] }];
-          }
-        }
-      }
-
-      if (Array.isArray(categories)) {
-        validCategories = categories.filter((item) => item != null);
-      }
-    } catch (error) {
-      console.error("Error validating chart data:", error);
-
-      if (type === "donut" || type === "pie") {
-        validSeries = [1];
-      } else {
-        validSeries = [{ data: [0] }];
-      }
-      validCategories = ["Data"];
-    }
-
-    return { validSeries, validCategories };
-  };
-
-  const { validSeries, validCategories } = validateData();
 
   useEffect(() => {
     setChartKey((prev) => prev + 1);
   }, [type, series, categories]);
 
-  // Default colors
-  const defaultColors = {
-    bar: ["#004B8D"],
-    line: ["#004B8D"],
-    donut: ["#004B8D", "#1f781a", "#0088FF", "#33A0FF", "#66B8FF", "#99D6FF"],
-    area: ["#004B8D"],
-    pie: ["#004B8D", "#1f781a", "#0088FF", "#33A0FF", "#66B8FF", "#99D6FF"],
-  };
+  // --- Data Validation ---
+  const { validSeries, validCategories, hasData } = useMemo(() => {
+    let vSeries = [];
+    let vCategories = [];
+    let hasDataCheck = false;
 
-  const getChartColors = () => {
-    if (colors && Array.isArray(colors)) return colors;
-    return defaultColors[type] || defaultColors.bar;
-  };
+    try {
+      if (Array.isArray(series)) {
+        if (type === "donut" || type === "pie") {
+          vSeries = series.filter((item) => typeof item === "number" && !isNaN(item));
+          hasDataCheck = vSeries.some((val) => val > 0);
+          if (vSeries.length === 0) vSeries = [1];
+        } else {
+          if (series.length > 0 && typeof series[0] === "object") {
+             vSeries = series; 
+             hasDataCheck = series.some(s => s.data && s.data.length > 0);
+          } else if (series.length > 0 && typeof series[0] === "number") {
+            vSeries = [{ name: "Data", data: series }];
+            hasDataCheck = true;
+          } else {
+            vSeries = [{ name: "Series", data: [] }];
+          }
+        }
+      }
+      if (Array.isArray(categories)) {
+        vCategories = categories.filter((item) => item != null);
+      }
+    } catch (error) {
+      console.error("Chart Error:", error);
+      vSeries = [];
+    }
 
-  const getPlotOptions = () => {
-    const baseOptions = {};
+    return { validSeries: vSeries, validCategories: vCategories, hasData: hasDataCheck };
+  }, [series, categories, type]);
 
-    if (type === "donut" || type === "pie") {
-      baseOptions.pie = {
-        donut: {
-          size: type === "donut" ? "65%" : "10%",
-          background: "transparent",
-          labels: {
-            show: true,
-            name: {
+
+  // --- Chart Configuration ---
+  const chartOptions = useMemo(() => {
+    const isCircular = type === "donut" || type === "pie";
+
+    return {
+      chart: {
+        type: type === "donut" ? "donut" : type,
+        background: "transparent",
+        toolbar: { show: false },
+        fontFamily: "'Inter', 'Poppins', sans-serif",
+        animations: {
+          enabled: true,
+          easing: "easeinout",
+          speed: 800,
+          animateGradually: { enabled: true, delay: 150 },
+        },
+      },
+      colors: brandPalette,
+      labels: validCategories, 
+
+      grid: {
+        show: !isCircular,
+        borderColor: "#e2e8f0", 
+        strokeDashArray: 4, 
+        padding: { top: 0, right: 0, bottom: 0, left: 15 },
+        xaxis: { lines: { show: false } },   
+        yaxis: { lines: { show: true } }, 
+      },
+      fill: {
+        type: type === "area" ? "gradient" : "solid",
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0.05,  
+          stops: [0, 100],
+        },
+        opacity: type === "bar" ? 1 : undefined,
+      },
+      stroke: {
+        show: true,
+        curve: "smooth", 
+        width: type === "line" ? 3 : type === "area" ? 2 : 0,
+        colors: isCircular ? ["#ffffff"] : undefined,
+        lineCap: "round",
+      },
+      xaxis: {
+        categories: validCategories,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: {
+          style: { colors: "#64748B", fontSize: "12px", fontWeight: 500 },
+          offsetY: 5,
+        },
+        tooltip: { enabled: false }, 
+      },
+      yaxis: {
+        show: !isCircular,
+        labels: {
+          style: { colors: "#64748B", fontSize: "12px", fontWeight: 500 },
+          formatter: (value) => {
+             if (value >= 1000000) return `₱${(value / 1000000).toFixed(1)}M`;
+             if (value >= 1000) return `₱${(value / 1000).toFixed(0)}k`;
+             return `₱${value}`;
+          }
+        },
+      },
+      tooltip: {
+        enabled: true,
+        shared: !isCircular, 
+        intersect: false, 
+        theme: "light",
+        fillSeriesColor: false,
+        style: { fontSize: "12px" },
+        custom: function({ series, seriesIndex, dataPointIndex, w }) {
+          if (isCircular) {
+            const value = series[seriesIndex];
+            const color = w.globals.colors[seriesIndex];
+            const label = w.globals.labels[seriesIndex]; 
+            const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0.0;
+            const formattedValue = value?.toLocaleString();
+            return `
+              <div style="background: white; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color: ${color};"></span>
+                  <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: #64748B;">${label}</span>
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                  <span style="font-size: 16px; font-weight: 700; color: #002B50;">₱${formattedValue}</span>
+                  <span style="font-size: 11px; font-weight: 600; color: #1f781a; background: #f0fdf4; padding: 2px 6px; border-radius: 4px;">${percent}%</span>
+                </div>
+              </div>`;
+          }
+          const category = w.globals.labels[dataPointIndex];
+          let html = `
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); min-width: 150px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">
+                <span style="font-size: 12px; font-weight: 600; color: #64748B;">${category}</span>
+              </div>
+              <div style="padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;">`;
+          w.config.series.forEach((s, i) => {
+            const val = w.globals.series[i][dataPointIndex];
+            if (typeof val !== 'undefined' && val !== null) {
+               const color = w.globals.colors[i];
+               const name = s.name || `Series ${i+1}`;
+               const formattedVal = val.toLocaleString();
+               html += `
+                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${color};"></span>
+                      <span style="font-size: 12px; color: #334155; font-weight: 500;">${name}</span>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 700; color: #002B50;">₱${formattedVal}</span>
+                 </div>`;
+            }
+          });
+          html += `</div></div>`;
+          return html;
+        }
+      },
+      plotOptions: {
+        bar: { borderRadius: 4, borderRadiusApplication: "end", columnWidth: "35%" },
+        pie: {
+          donut: {
+            size: "72%",
+            labels: {
               show: true,
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "#475569",
-            },
-            value: {
-              show: true,
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#1E293B",
-            },
-            total: {
-              show: true,
-              showAlways: true,
-              label: "Total",
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "#475569",
+              name: { show: true, fontSize: "11px", color: "#64748B", offsetY: -4 },
+              value: { show: true, fontSize: "20px", fontWeight: 700, color: "#002B50", offsetY: 6, formatter: (val) => `₱${parseInt(val).toLocaleString()}` },
+              total: { show: true, label: "Total", color: "#94a3b8", fontWeight: 600, fontSize: "11px", formatter: (w) => `₱${w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()}` },
             },
           },
         },
-      };
-
-      baseOptions.stroke = {
-        width: 4,
-        colors: ["#fff"],
-        lineCap: "round",
-      };
-
-      baseOptions.pie.expandOnClick = false;
-      baseOptions.pie.offsetX = 0;
-      baseOptions.pie.offsetY = 0;
-    }
-
-    if (type === "bar") {
-      baseOptions.bar = {
-        borderRadius: 8,
-        borderRadiusApplication: "end",
-        borderRadiusWhenStacked: "last",
-        columnWidth: "25%",
-        endingShape: "rounded",
-        distributed: false,
-      };
-    }
-
-    return baseOptions;
-  };
-
-  const getStrokeOptions = () => {
-    if (type === "line" || type === "area") {
-      return {
-        curve: "smooth",
-        width: type === "line" ? 2.5 : 3,
-        lineCap: "round",
-      };
-    }
-    return { width: 2 };
-  };
-
-  const getMarkers = () => {
-    if (type === "line" || type === "area") {
-      return {
-        size: 4,
-        strokeWidth: 2,
-        fillOpacity: 1,
-        hover: { size: 6 },
-      };
-    }
-    return { size: 0 };
-  };
-
-  const getFillOptions = () => {
-    if (type === "area") {
-      return {
-        type: "gradient",
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.4,
-          opacityTo: 0.1,
-          stops: [0, 90, 100],
-        },
-      };
-    }
-    return { type: "solid", opacity: 1 };
-  };
-
-  const baseOptions = {
-    chart: {
-      type: type === "donut" ? "donut" : type,
-      toolbar: { show: false },
-      background: "transparent",
-      animations: {
-        enabled: true,
-        easing: "easeout",
-        speed: 600,
       },
-      fontFamily: "Poppins, sans-serif",
-    },
-    colors: getChartColors(),
-    plotOptions: getPlotOptions(),
-    stroke: {
-      ...getStrokeOptions(),
-      width: type === "donut" || type === "pie" ? 2 : getStrokeOptions().width,
-      colors: type === "donut" || type === "pie" ? ["#fff"] : undefined,
-      lineCap:
-        type === "donut" || type === "pie"
-          ? "round"
-          : getStrokeOptions().lineCap,
-    },
-    markers: getMarkers(),
-    dataLabels: {
-      enabled: type === "donut" || type === "pie",
-      style: {
-        fontSize: "12px",
-        fontWeight: 600,
-        colors: ["#FFFFFF"],
-      },
-      dropShadow: {
-        enabled: true,
-        top: 1,
-        left: 1,
-        blur: 1,
-        opacity: 0.45,
-      },
-    },
-    grid: {
-      borderColor: "#F1F5F9",
-      strokeDashArray: 4,
-    },
-    tooltip: {
-      enabled: true,
-      y: {
-        formatter: (val) => `₱${val?.toLocaleString() || "0"}`,
-      },
-    },
-    states: {
-      hover: {
-        filter: { type: "lighten", value: 0.1 },
-      },
-    },
-    fill: getFillOptions(),
-    noData: {
-      text: "No data available",
-      align: "center",
-      verticalAlign: "middle",
-      style: {
-        color: "#64748B",
-        fontSize: "14px",
-      },
-    },
-  };
-
-  if (type !== "donut" && type !== "pie") {
-    baseOptions.xaxis = {
-      categories: validCategories,
-      labels: {
-        style: { colors: "#64748B" },
-        rotate: type === "bar" && validCategories.length > 6 ? -45 : 0,
-      },
-      axisBorder: { show: false },
-      axisTicks: { show: false },
+      dataLabels: { enabled: false },
+      legend: { show: true, position: "bottom", horizontalAlign: "left", fontSize: "13px", fontWeight: 500, markers: { radius: 12, width: 12, height: 12 }, itemMargin: { horizontal: 15, vertical: 5 } }
     };
-    baseOptions.yaxis = {
-      labels: {
-        style: { colors: "#64748B" },
-        formatter: (value) => `₱${value?.toLocaleString() || "0"}`,
-      },
-    };
-  } else {
-    baseOptions.labels =
-      validCategories.length > 0 ? validCategories : ["Data"];
-    baseOptions.legend = {
-      position: "bottom",
-      horizontalAlign: "center",
-      fontSize: "12px",
-      markers: {
-        width: 8,
-        height: 8,
-        radius: 4,
-      },
-    };
+  }, [type, validCategories, brandPalette]);
 
-    baseOptions.stroke = {
-      width: 2,
-      colors: ["#fff"],
-      lineCap: "round",
-    };
-  }
+  const containerClasses = `
+    w-full bg-white rounded-xl p-6 
+    border border-slate-100 shadow-sm hover:shadow-md
+    transform transition-all duration-700 ease-[cubic-bezier(0.25,0.8,0.25,1)]
+    ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}
+  `;
 
-  const hasValidData = () => {
-    if (type === "donut" || type === "pie") {
-      return (
-        Array.isArray(validSeries) &&
-        validSeries.length > 0 &&
-        validSeries.some((val) => val > 0)
-      );
-    } else {
-      return (
-        Array.isArray(validSeries) &&
-        validSeries.length > 0 &&
-        validSeries[0]?.data &&
-        validSeries[0].data.length > 0 &&
-        validSeries[0].data.some((val) => val !== undefined && val !== null)
-      );
-    }
-  };
-
-  if (!hasValidData()) {
+  if (!hasData) {
     return (
-      <div
-        className={`p-6 rounded-2xl border border-gray-100 shadow-sm bg-white transition-all duration-700 ease-out overflow-hidden ${
-          mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-        }`}
-      >
-        {title && (
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 pl-1">
-            {title}
-          </h3>
-        )}
-        <div
-          className="flex items-center justify-center"
-          style={{ height: `${height}px` }}
-        >
-          <p className="text-gray-500 text-sm">No data available</p>
+      <div className={containerClasses} style={{ height: `${height + 50}px` }}>
+        {title && <h3 className="text-navyBlue font-bold text-lg mb-4">{title}</h3>}
+        <div className="flex flex-col items-center justify-center h-full opacity-50">
+           <p className="text-slate-400 font-medium text-sm">No data available</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className={`p-6 rounded-2xl border border-gray-100 shadow-sm bg-white transition-all duration-700 ease-out overflow-hidden ${
-        mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-      }`}
-    >
-      {title && (
-        <h3 className="text-lg font-semibold text-gray-800 mb-2 pl-1">
-          {title}
-        </h3>
+    <div className={containerClasses}>
+      
+
+      {(title || filter) && (
+        <div className="flex justify-between items-center mb-6 pl-1">
+            {title && (
+              <h3 className="title">
+                {title}
+              </h3>
+            )}
+            {filter && (
+              <div className="relative z-10">
+                {filter}
+              </div>
+            )}
+        </div>
       )}
-      <div className={type === "donut" ? "flex justify-center" : ""}>
+
+      <div 
+        className={`relative ${type === "donut" ? "flex justify-center" : ""}`}
+        style={{ minHeight: height }}
+      >
         <ReactApexChart
           key={chartKey}
-          type={type === "donut" ? "donut" : type}
+          options={chartOptions}
           series={validSeries}
-          options={baseOptions}
+          type={type === "donut" ? "donut" : type}
           height={height}
+          width="100%"
         />
       </div>
     </div>

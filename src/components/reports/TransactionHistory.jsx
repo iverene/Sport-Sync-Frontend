@@ -30,7 +30,7 @@ export default function SalesReport() {
 
     // Assign Cashier role randomly from Admin, Staff, Cashier
     const roles = ["Admin", "Staff", "Cashier"];
-    const cashierRole = roles[t.user_id % roles.length]; // deterministic assignment
+    const cashierRole = roles[t.user_id % roles.length];
 
     return {
       "Transaction ID": t.id,
@@ -76,7 +76,6 @@ export default function SalesReport() {
     { header: "Transaction ID", accessor: "Transaction ID" },
     { header: "Date & Time", accessor: "Date & Time" },
     { header: "Cashier", accessor: "Cashier" },
-    { header: "Items Sold", accessor: "Items Sold" },
     { header: "Payment Method", accessor: "Payment Method" },
     { header: "Total", accessor: "Total" },
     { header: "Actions", accessor: "Actions" },

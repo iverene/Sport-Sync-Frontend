@@ -72,6 +72,7 @@ const reorderPoint = 5; // Example reorder threshold
   ];
 
 export default function InventoryReport() {
+
   return (
     <div className="flex flex-col space-y-5">
       <div className="flex gap-5 justify-end">
@@ -85,7 +86,7 @@ export default function InventoryReport() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Products */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#002B50"
           title="Total Products"
           icon={<Boxes />}
           value={<>100</>}
@@ -93,7 +94,7 @@ export default function InventoryReport() {
 
         {/* Inventory Value */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#002B50"
           title="Inventory Value"
           icon={<DollarSign />}
           value={<>₱523,500.00</>}
@@ -101,17 +102,17 @@ export default function InventoryReport() {
 
         {/* Low Stock */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#E74C3C"
           title="Low Stock"
-          icon={<Box className="text-amberOrange"/>}
+          icon={<Box />}
           value={<span className="text-amberOrange">2</span>}
         />
 
         {/* Out of Stock */}
         <KpiCard
-          bgColor="#FAFAFA"
+          bgColor="#F39C12"
           title="Out of Stock"
-          icon={<Box className="text-crimsonRed"/>}
+          icon={<Box />}
           value={<span className="text-crimsonRed">1</span>}
         />
       </div>
@@ -120,7 +121,7 @@ export default function InventoryReport() {
         <Table tableName="Inventory by Category" columns={columns} data={categoryData} rowsPerPage={10} />
         
         <div className="default-container p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Stock Status Overview</h3>
+      <h3 className="title mb-3">Stock Status Overview</h3>
       <div className="space-y-5">
         {stats.map(stat => (
           <div key={stat.label} className="default-container rounded-lg py-2 px-4 flex justify-between items-center">
