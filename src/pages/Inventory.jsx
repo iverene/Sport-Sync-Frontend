@@ -287,7 +287,7 @@ export default function Inventory() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Products */}
           <KpiCard
-            bgColor="#FAFAFA"
+            bgColor="#002B50"
             title="Total Products"
             icon={<Package />}
             value={totalProducts}
@@ -295,7 +295,7 @@ export default function Inventory() {
 
           {/* Low Stock */}
           <KpiCard
-            bgColor="#FAFAFA"
+            bgColor="#F39C12"
             title="Low Stock"
             icon={<AlertTriangle />}
             value={lowStockItems}
@@ -303,7 +303,7 @@ export default function Inventory() {
 
           {/* Out of Stock */}
           <KpiCard
-            bgColor="#FAFAFA"
+            bgColor="#E74C3C"
             title="Out of Stock"
             icon={<TrendingDown />}
             value={outOfStockItems}
@@ -311,7 +311,7 @@ export default function Inventory() {
 
           {/* Inventory Value */}
           <KpiCard
-            bgColor="#FAFAFA"
+            bgColor="#1f781a"
             title="Inventory Value"
             icon={<DollarSign />}
             value={`₱${inventoryValue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}

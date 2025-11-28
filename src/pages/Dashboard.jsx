@@ -54,13 +54,13 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-6 lg:gap-8 mb-6">
         <KpiCard
-          bgColor="#BCD3E4"
+          bgColor="#004B8D"
           title="Today's Sale"
           icon={<DollarSign />}
           value={`₱${todayRevenue.toLocaleString()}`}
           description={
             <>
-              <span className="flex bg-deepBlue/50 p-1 rounded-full font-bold text-xs sm:text-sm">
+              <span className="flex bg-deepBlue/50 text-softWhite p-1 rounded-full font-bold text-xs sm:text-sm">
                 <ArrowUp size={14} /> {saleChange}%
               </span>
               &nbsp;vs yesterday
@@ -69,13 +69,13 @@ export default function Dashboard() {
         />
 
         <KpiCard
-          bgColor="#D4E0EB"
+          bgColor="#1f781a"
           title="Transactions"
           icon={<ShoppingCart />}
           value={todayTx}
           description={
             <>
-              <span className="flex bg-deepBlue/50 p-1 rounded-full font-bold text-xs sm:text-sm">
+              <span className="flex bg-deepBlue/50 text-softWhite p-1 rounded-full font-bold text-xs sm:text-sm">
                 <ArrowUp size={14} /> {txChange}%
               </span>
               &nbsp;vs yesterday
@@ -84,7 +84,7 @@ export default function Dashboard() {
         />
 
         <KpiCard
-          bgColor="#E7F0F7"
+          bgColor="#F39C12"
           title="Low Stock Items"
           icon={<Boxes />}
           value={lowStock}
@@ -92,7 +92,7 @@ export default function Dashboard() {
         />
 
         <KpiCard
-          bgColor="#F4F8FB"
+          bgColor="#E74C3C"
           title="Out of Stock"
           icon={<AlertTriangle />}
           value={outOfStock}
