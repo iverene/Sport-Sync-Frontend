@@ -17,7 +17,6 @@ export default function CategoryButton({ categories, active, onSelect }) {
     <div className="w-full">
       <div className="flex justify-between gap-3 overflow-x-auto pb-4 scrollbar-hide">
         {allCategories.map((cat) => {
-          // Resolve Icon
           const IconName = iconMap[cat.category_name] || "Tag";
           const Icon = Icons[IconName] || Icons.Tag;
           

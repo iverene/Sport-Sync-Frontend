@@ -95,6 +95,7 @@ export default function POS() {
         {/* Products Column */}
         <div className="flex-1 flex flex-col gap-3">
           <div className="flex justify-between items-center gap-5">
+            {/* Search bar */}
             <Scanner />
           </div>
 
@@ -107,7 +108,7 @@ export default function POS() {
           </div>
 
           <div className="bg-softWhite border border-gray-300 p-4 rounded-xl overflow-x-auto max-h-115 hide-scrollbar -ms-overflow-style-none">
-            <h2 className="text-lg font-semibold mb-2">
+            <h2 className="title mb-4">
               {activeCategory === "All" ? "All Products" : activeCategory}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mt-2">
