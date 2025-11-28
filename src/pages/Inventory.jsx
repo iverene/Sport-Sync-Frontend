@@ -2,6 +2,7 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import Table from "../components/Table";
 import KpiCard from "../components/KpiCard";
+import Filter from "../components/Filter";
 import EditProductModal from "../components/inventory/EditProductModal.jsx";
 import { categories } from "../mockData";
 import { useAuth } from "../context/AuthContext";
@@ -13,7 +14,6 @@ import {
   DollarSign,
   Trash2,
   Search,
-  Filter,
   Edit,
   PlusCircle,
   X,
@@ -134,20 +134,13 @@ export default function Inventory() {
   const { user } = useAuth();
   const categoryMap = getCategoryMap(categories);
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Form states
+  // Form state
   const [formData, setFormData] = useState({
-    productName: "",
-    category: "",
-    description: "",
-    sellingPrice: "0.00",
-    costPrice: "0.00",
-    initialStock: "0",
-    reorderPoint: "10",
-    supplier: "",
-    barcode: "",
+    productName: "", category: "", description: "", sellingPrice: "0.00", costPrice: "0.00", initialStock: "0", reorderPoint: "10", supplier: "", barcode: "",
   });
 
   // Filter states
@@ -155,42 +148,23 @@ export default function Inventory() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockLevel, setSelectedStockLevel] = useState("all");
 
-  // Filter logic - Apply filters to products
+  // Logic
   const filteredProducts = products.filter((product) => {
-    // Search filter
-    const matchesSearch = product.product_name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-
-    // Category filter
-    const matchesCategory =
-      selectedCategory === "all" ||
-      product.category_id === parseInt(selectedCategory);
-
-    // Stock level filter
+    const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || product.category_id === parseInt(selectedCategory);
     let matchesStockLevel = true;
-    if (selectedStockLevel === "in-stock") {
-      matchesStockLevel = product.quantity > 0;
-    } else if (selectedStockLevel === "low-stock") {
-      matchesStockLevel = product.quantity > 0 && product.quantity <= 10;
-    } else if (selectedStockLevel === "out-of-stock") {
-      matchesStockLevel = product.quantity === 0;
-    }
-
+    if (selectedStockLevel === "in-stock") matchesStockLevel = product.quantity > 0;
+    else if (selectedStockLevel === "low-stock") matchesStockLevel = product.quantity > 0 && product.quantity <= 10;
+    else if (selectedStockLevel === "out-of-stock") matchesStockLevel = product.quantity === 0;
     return matchesSearch && matchesCategory && matchesStockLevel;
   });
 
-  // Calculate stats based on ALL products (not filtered)
   const totalProducts = products.length;
-  const lowStockItems = products.filter(
-    (p) => p.quantity > 0 && p.quantity <= 10
-  ).length;
+  const lowStockItems = products.filter((p) => p.quantity > 0 && p.quantity <= 10).length;
   const outOfStockItems = products.filter((p) => p.quantity === 0).length;
-  const inventoryValue = products.reduce(
-    (sum, p) => sum + parseFloat(p.cost_price) * p.quantity,
-    0
-  );
+  const inventoryValue = products.reduce((sum, p) => sum + parseFloat(p.cost_price) * p.quantity, 0);
 
+  // Table Config
   const columns = [
     { header: "Product", accessor: "Product" },
     { header: "Category", accessor: "Category" },
@@ -201,92 +175,66 @@ export default function Inventory() {
     { header: "Actions", accessor: "Actions" },
   ];
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-
   const handleEditClick = (product) => {
     setSelectedProduct(product);
     setIsEditModalOpen(true);
   };
 
-  const handleSaveProduct = (updatedProduct) => {
-    console.log("Saving updated product:", updatedProduct);
+  const handleSaveProduct = (updatedProduct) => { console.log("Saving:", updatedProduct); };
+  
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Form submitted:", formData);
+    setIsModalOpen(false);
   };
 
   const data = filteredProducts.map((p) => ({
     Product: p.product_name,
     Category: categoryMap[p.category_id],
-    "Cost Price": new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-    }).format(p.cost_price),
-    "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString("en-PH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`,
-    Stock:
-      p.quantity === 0 ? (
-        <span className="text-red-500 font-semibold">{p.quantity}</span>
-      ) : (
-        <span className="text-green-500 font-semibold">{p.quantity}</span>
-      ),
-    Status:
-      p.quantity === 0 ? (
-        <span className="bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-medium inline-block whitespace-nowrap">
-          Out of Stock
-        </span>
-      ) : (
-        <span className="bg-navyBlue text-white px-3 py-1.5 rounded-full text-xs font-medium inline-block whitespace-nowrap">
-          In Stock
-        </span>
-      ),
-    Actions:
-      user.role === "Admin" || user.role === "Staff" ? (
-        <div className="flex gap-2">
-          <button
-            className="p-2 text-darkGreen rounded hover:bg-lightGray flex items-center justify-center"
-            onClick={() => handleEditClick(p)}
-          >
-            <Edit size={16} />
-          </button>
-          <button
-            className="p-2 text-crimsonRed rounded hover:bg-lightGray flex items-center justify-center"
-            onClick={() => console.log("Delete", p)}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      ) : null,
+    "Cost Price": `₱${parseFloat(p.cost_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+    "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+    Stock: <span className={p.quantity === 0 ? "text-red-500 font-bold" : "text-emerald-600 font-bold"}>{p.quantity}</span>,
+    Status: p.quantity === 0 
+      ? <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span> 
+      : <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>,
+    Actions: (user.role === "Admin" || user.role === "Staff") ? (
+      <div className="flex gap-2">
+        <button onClick={() => handleEditClick(p)} className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-100 hover:bg-blue-50 rounded transition-colors">
+          <Edit size={16} />
+        </button>
+        <button onClick={() => console.log("Delete", p)} className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded transition-colors">
+          <Trash2 size={16} />
+        </button>
+      </div>
+    ) : null,
   }));
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Handle form submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Add your submit logic here
-    setIsModalOpen(false);
-    // Reset form
-    setFormData({
-      productName: "",
-      category: "",
-      description: "",
-      sellingPrice: "0.00",
-      costPrice: "0.00",
-      initialStock: "0",
-      reorderPoint: "10",
-      supplier: "",
-      barcode: "Auto-generated",
-    });
-  };
+  // Filter Configuration for Reusable Component
+  const filterConfig = [
+    {
+        value: selectedCategory,
+        onChange: (e) => setSelectedCategory(e.target.value),
+        options: [
+            { value: "all", label: "All Categories" },
+            ...categories.map(cat => ({ value: cat.category_id, label: cat.category_name }))
+        ]
+    },
+    {
+        value: selectedStockLevel,
+        onChange: (e) => setSelectedStockLevel(e.target.value),
+        options: [
+            { value: "all", label: "All Stock Levels" },
+            { value: "in-stock", label: "In Stock" },
+            { value: "low-stock", label: "Low Stock" },
+            { value: "out-of-stock", label: "Out of Stock" }
+        ]
+    }
+  ];
 
   return (
     <Layout>
@@ -357,81 +305,20 @@ export default function Inventory() {
           />
         </div>
 
-        {/* Filter Section */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter size={20} className="text-gray-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search Input */}
-            <div className="relative">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <div>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-white"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat.category_id} value={cat.category_id}>
-                    {cat.category_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Stock Level Filter */}
-            <div>
-              <select
-                value={selectedStockLevel}
-                onChange={(e) => setSelectedStockLevel(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-white"
-              >
-                <option value="all">All Stock Levels</option>
-                <option value="in-stock">In Stock</option>
-                <option value="low-stock">Low Stock</option>
-                <option value="out-of-stock">Out of Stock</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Active Filters Display / Clear Filters */}
-          {(searchQuery ||
-            selectedCategory !== "all" ||
-            selectedStockLevel !== "all") && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                Showing {filteredProducts.length} of {totalProducts} products
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("all");
-                  setSelectedStockLevel("all");
-                }}
-                className="text-sm text-navyBlue hover:text-darkGreen font-medium"
-              >
-                Clear All Filters
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Reusable Filter */}
+        <Filter 
+            searchQuery={searchQuery}
+            onSearchChange={(e) => setSearchQuery(e.target.value)}
+            searchPlaceholder="Search products by name..."
+            filters={filterConfig}
+            showClearButton={searchQuery || selectedCategory !== "all" || selectedStockLevel !== "all"}
+            onClear={() => {
+                setSearchQuery("");
+                setSelectedCategory("all");
+                setSelectedStockLevel("all");
+            }}
+            resultsCount={`Showing ${filteredProducts.length} products`}
+        />
 
         {/* Table */}
         <Table

@@ -61,7 +61,7 @@ const UserManagementTable = () => {
   const hasActiveFilters = searchTerm || roleFilter !== 'all' || statusFilter !== 'all';
 
   return (
-    <div className="min-h-screen  p-6">
+    <div className="min-h-screen  py-6">
       <div className="max-w-7xl mx-auto">
         {/* Filter Section */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -130,7 +130,7 @@ const UserManagementTable = () => {
         {/* Users Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Users ({filteredUsers.length})</h2>
+            <h2 className="title">Users ({filteredUsers.length})</h2>
           </div>
 
           <div className="overflow-x-auto">

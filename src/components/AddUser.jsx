@@ -28,10 +28,6 @@ export default function UserManagementHeader() {
   return (
     <>
       <div className="flex items-center justify-between ">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
-          <p className="text-slate-600 mt-1">Manage user accounts and permissions</p>
-        </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 bg-darkGreen text-softWhite px-6 py-3 rounded-lg font-medium hover:bg-green-700 shadow-lg transition-all duration-200"

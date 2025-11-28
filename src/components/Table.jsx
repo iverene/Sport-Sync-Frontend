@@ -21,12 +21,12 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
   };
 
   return (
-    <div className="w-full bg-softWhite rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+    <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
       
       {/* --- Table Header Section --- */}
       {tableName && (
         <div className="px-6 py-4 border-b border-slate-100 bg-white">
-          <h3 className="title">
+          <h3 className="text-navyBlue font-bold text-lg tracking-tight">
             {tableName}
           </h3>
         </div>
@@ -41,7 +41,7 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
                 <th
                   key={idx}
                   scope="col"
-                  className="px-6 py-3 text-xs font-semibold text-slate-800 uppercase tracking-wider whitespace-nowrap"
+                  className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   {col.header}
                 </th>
@@ -69,7 +69,6 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
                         key={i} 
                         className="px-6 py-4 text-sm text-slate-700 whitespace-nowrap group-hover:text-navyBlue"
                     >
-                      {/* Render custom component or raw value */}
                       {col.render ? col.render(row, idx) : row[col.accessor] || "-"}
                     </td>
                   ))}
@@ -83,34 +82,18 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
       {/* --- Pagination Footer --- */}
       {totalPages > 1 && (
         <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
-          
-          {/* Info Text */}
           <span className="text-sm text-slate-500 font-medium">
             Showing {startIndex + 1} to {Math.min(startIndex + rowsPerPage, data.length)} of {data.length} entries
           </span>
 
-          {/* Controls */}
           <div className="flex items-center gap-2">
-            
-            <button
-              onClick={goFirst}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-              title="First Page"
-            >
+            <button onClick={goFirst} disabled={currentPage === 1} className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 transition-all">
               <ChevronsLeft size={18} />
             </button>
-            
-            <button
-              onClick={goPrev}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-              title="Previous"
-            >
+            <button onClick={goPrev} disabled={currentPage === 1} className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 transition-all">
               <ChevronLeft size={18} />
             </button>
 
-            {/* Page Input */}
             <div className="flex items-center gap-2 mx-2">
               <span className="text-sm text-slate-600">Page</span>
               <input
@@ -119,26 +102,15 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
                 max={totalPages}
                 value={currentPage}
                 onChange={handlePageInput}
-                className="w-12 h-8 text-center text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-darkGreen/20 focus:border-darkGreen transition-all outline-none"
+                className="w-12 h-8 text-center text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-navyBlue/20 focus:border-navyBlue transition-all outline-none"
               />
               <span className="text-sm text-slate-600">of {totalPages}</span>
             </div>
 
-            <button
-              onClick={goNext}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-              title="Next"
-            >
+            <button onClick={goNext} disabled={currentPage === totalPages} className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 transition-all">
               <ChevronRight size={18} />
             </button>
-
-            <button
-              onClick={goLast}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-              title="Last Page"
-            >
+            <button onClick={goLast} disabled={currentPage === totalPages} className="p-2 rounded-lg text-slate-500 hover:bg-white hover:text-navyBlue hover:shadow-sm disabled:opacity-30 transition-all">
               <ChevronsRight size={18} />
             </button>
           </div>
@@ -147,5 +119,3 @@ export default function Table({ tableName, columns = [], data = [], rowsPerPage 
     </div>
   );
 }
-
-
