@@ -138,7 +138,7 @@ export default function Inventory() {
     initialStock: "0",
     reorderPoint: "10",
     supplier: "",
-    barcode: "Auto-generated"
+    barcode: ""
   });
 
   // Filter states
@@ -401,8 +401,8 @@ export default function Inventory() {
 
       {/* Add Product Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-softWhite rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-charcoalBlack/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-softWhite rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar">
             {/* Modal Header */}
             <div className="bg-navyBlue flex items-center justify-between p-6 border-b">
               <div>
@@ -457,20 +457,7 @@ export default function Inventory() {
                   </div>
                 </div>
 
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Product description"
-                    rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50 resize-none"
-                  />
-                </div>
+                
 
                 {/* Selling Price and Cost Price Row */}
                 <div className="grid grid-cols-2 gap-4">
@@ -534,21 +521,9 @@ export default function Inventory() {
                   </div>
                 </div>
 
-                {/* Supplier and Barcode Row */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Supplier
-                    </label>
-                    <input
-                      type="text"
-                      name="supplier"
-                      value={formData.supplier}
-                      onChange={handleInputChange}
-                      placeholder="Supplier name"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
-                    />
-                  </div>
+                {/* Barcode */}
+              
+              
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Barcode
@@ -558,17 +533,15 @@ export default function Inventory() {
                       name="barcode"
                       value={formData.barcode}
                       onChange={handleInputChange}
-                      placeholder="Auto-generated"
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
                     />
                   </div>
-                </div>
+                
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t">
+            <div className="p-6">
               <button
                 onClick={handleSubmit}
                 className="w-full bg-navyBlue text-white py-3 rounded-lg font-medium hover:bg-green-800 transition-colors"
