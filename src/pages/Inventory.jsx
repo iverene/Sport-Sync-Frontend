@@ -2,13 +2,22 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import Table from "../components/Table";
 import KpiCard from "../components/KpiCard";
+import EditProductModal from "../components/inventory/EditProductModal.jsx";
 import { categories } from "../mockData";
 import { useAuth } from "../context/AuthContext";
 import { getCategoryMap } from "../utils/Utils.js";
-import { Edit, PlusCircle, X } from "lucide-react";
-import { Package, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
-import { Search, Filter } from 'lucide-react';
-
+import {
+  Package,
+  AlertTriangle,
+  TrendingDown,
+  DollarSign,
+  Trash2,
+  Search,
+  Filter,
+  Edit,
+  PlusCircle,
+  X,
+} from "lucide-react";
 
 const products = [
   {
@@ -18,7 +27,7 @@ const products = [
     cost_price: "3500.00",
     selling_price: "5500.00",
     quantity: 25,
-    barcode: "BSI1681234567890"
+    barcode: "BSI1681234567890",
   },
   {
     product_id: 2,
@@ -27,7 +36,7 @@ const products = [
     cost_price: "5000.00",
     selling_price: "8500.00",
     quantity: 15,
-    barcode: "BSI1682345678901"
+    barcode: "BSI1682345678901",
   },
   {
     product_id: 3,
@@ -36,7 +45,7 @@ const products = [
     cost_price: "1500.00",
     selling_price: "3200.00",
     quantity: 8,
-    barcode: "BSI1683456789012"
+    barcode: "BSI1683456789012",
   },
   {
     product_id: 4,
@@ -45,7 +54,7 @@ const products = [
     cost_price: "800.00",
     selling_price: "1800.00",
     quantity: 0,
-    barcode: "BSI1684567890123"
+    barcode: "BSI1684567890123",
   },
   {
     product_id: 5,
@@ -54,7 +63,7 @@ const products = [
     cost_price: "1200.00",
     selling_price: "2500.00",
     quantity: 30,
-    barcode: "BSI1685678901234"
+    barcode: "BSI1685678901234",
   },
   {
     product_id: 6,
@@ -63,7 +72,7 @@ const products = [
     cost_price: "7000.00",
     selling_price: "12000.00",
     quantity: 6,
-    barcode: "BSI1686789012345"
+    barcode: "BSI1686789012345",
   },
   {
     product_id: 7,
@@ -72,7 +81,7 @@ const products = [
     cost_price: "2500.00",
     selling_price: "4500.00",
     quantity: 12,
-    barcode: "BSI1687890123456"
+    barcode: "BSI1687890123456",
   },
   {
     product_id: 8,
@@ -81,7 +90,7 @@ const products = [
     cost_price: "800.00",
     selling_price: "1800.00",
     quantity: 45,
-    barcode: "BSI1688901234567"
+    barcode: "BSI1688901234567",
   },
   {
     product_id: 9,
@@ -90,7 +99,7 @@ const products = [
     cost_price: "1500.00",
     selling_price: "3500.00",
     quantity: 18,
-    barcode: "BSI1689012345678"
+    barcode: "BSI1689012345678",
   },
   {
     product_id: 10,
@@ -99,7 +108,7 @@ const products = [
     cost_price: "1800.00",
     selling_price: "3200.00",
     quantity: 22,
-    barcode: "BSI1681123456789"
+    barcode: "BSI1681123456789",
   },
   {
     product_id: 11,
@@ -108,7 +117,7 @@ const products = [
     cost_price: "2500.00",
     selling_price: "4800.00",
     quantity: 9,
-    barcode: "BSI1681123456789"
+    barcode: "BSI1681123456789",
   },
   {
     product_id: 12,
@@ -117,8 +126,8 @@ const products = [
     cost_price: "3000.00",
     selling_price: "5500.00",
     quantity: 14,
-    barcode: "BSI1682345678901"
-  }
+    barcode: "BSI1682345678901",
+  },
 ];
 
 export default function Inventory() {
@@ -127,7 +136,7 @@ export default function Inventory() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Form states
   const [formData, setFormData] = useState({
     productName: "",
@@ -138,7 +147,7 @@ export default function Inventory() {
     initialStock: "0",
     reorderPoint: "10",
     supplier: "",
-    barcode: ""
+    barcode: "",
   });
 
   // Filter states
@@ -149,11 +158,15 @@ export default function Inventory() {
   // Filter logic - Apply filters to products
   const filteredProducts = products.filter((product) => {
     // Search filter
-    const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchesSearch = product.product_name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
     // Category filter
-    const matchesCategory = selectedCategory === "all" || product.category_id === parseInt(selectedCategory);
-    
+    const matchesCategory =
+      selectedCategory === "all" ||
+      product.category_id === parseInt(selectedCategory);
+
     // Stock level filter
     let matchesStockLevel = true;
     if (selectedStockLevel === "in-stock") {
@@ -163,15 +176,20 @@ export default function Inventory() {
     } else if (selectedStockLevel === "out-of-stock") {
       matchesStockLevel = product.quantity === 0;
     }
-    
+
     return matchesSearch && matchesCategory && matchesStockLevel;
   });
 
   // Calculate stats based on ALL products (not filtered)
   const totalProducts = products.length;
-  const lowStockItems = products.filter(p => p.quantity > 0 && p.quantity <= 10).length;
-  const outOfStockItems = products.filter(p => p.quantity === 0).length;
-  const inventoryValue = products.reduce((sum, p) => sum + (parseFloat(p.cost_price) * p.quantity), 0);
+  const lowStockItems = products.filter(
+    (p) => p.quantity > 0 && p.quantity <= 10
+  ).length;
+  const outOfStockItems = products.filter((p) => p.quantity === 0).length;
+  const inventoryValue = products.reduce(
+    (sum, p) => sum + parseFloat(p.cost_price) * p.quantity,
+    0
+  );
 
   const columns = [
     { header: "Product", accessor: "Product" },
@@ -183,12 +201,29 @@ export default function Inventory() {
     { header: "Actions", accessor: "Actions" },
   ];
 
-  // Use filteredProducts instead of products for table data
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const handleEditClick = (product) => {
+    setSelectedProduct(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveProduct = (updatedProduct) => {
+    console.log("Saving updated product:", updatedProduct);
+  };
+
   const data = filteredProducts.map((p) => ({
     Product: p.product_name,
     Category: categoryMap[p.category_id],
-    "Cost Price": new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(p.cost_price),
-    "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    "Cost Price": new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(p.cost_price),
+    "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString("en-PH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`,
     Stock:
       p.quantity === 0 ? (
         <span className="text-red-500 font-semibold">{p.quantity}</span>
@@ -210,15 +245,15 @@ export default function Inventory() {
         <div className="flex gap-2">
           <button
             className="p-2 text-darkGreen rounded hover:bg-lightGray flex items-center justify-center"
-            onClick={() => console.log("Edit", p)}
+            onClick={() => handleEditClick(p)}
           >
             <Edit size={16} />
           </button>
           <button
-            className="p-2 text-navyBlue rounded hover:bg-lightGray flex items-center justify-center"
-            onClick={() => console.log("Adjust", p)}
+            className="p-2 text-crimsonRed rounded hover:bg-lightGray flex items-center justify-center"
+            onClick={() => console.log("Delete", p)}
           >
-            <PlusCircle size={16} />
+            <Trash2 size={16} />
           </button>
         </div>
       ) : null,
@@ -227,9 +262,9 @@ export default function Inventory() {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -249,33 +284,34 @@ export default function Inventory() {
       initialStock: "0",
       reorderPoint: "10",
       supplier: "",
-      barcode: "Auto-generated"
+      barcode: "Auto-generated",
     });
   };
 
   return (
     <Layout>
       <div className="space-y-5">
-
         {/* Header Section */}
         <div className="mb-5 flex justify-between items-start">
           <div>
-            <h1 className="page-title">
-              Inventory
-            </h1>
-            <p className="text-gray-600">
+            <h1 className="page-title">Inventory</h1>
+            <p className="page-description">
               Manage your sports equipment and stock levels
             </p>
           </div>
-          
+
           {/* Add Product Button */}
           {(user.role === "Admin" || user.role === "Staff") && (
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
               className="text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              style={{ backgroundColor: '#004B8D' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#003366'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#004B8D'}
+              style={{ backgroundColor: "#004B8D" }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#003366")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#004B8D")
+              }
             >
               <PlusCircle size={18} />
               Add Product
@@ -314,7 +350,10 @@ export default function Inventory() {
             bgColor="#1f781a"
             title="Inventory Value"
             icon={<DollarSign />}
-            value={`₱${inventoryValue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            value={`₱${inventoryValue.toLocaleString("en-PH", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
           />
         </div>
 
@@ -324,11 +363,14 @@ export default function Inventory() {
             <Filter size={20} className="text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search Input */}
             <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="text"
                 placeholder="Search products..."
@@ -370,7 +412,9 @@ export default function Inventory() {
           </div>
 
           {/* Active Filters Display / Clear Filters */}
-          {(searchQuery || selectedCategory !== "all" || selectedStockLevel !== "all") && (
+          {(searchQuery ||
+            selectedCategory !== "all" ||
+            selectedStockLevel !== "all") && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">
                 Showing {filteredProducts.length} of {totalProducts} products
@@ -390,13 +434,12 @@ export default function Inventory() {
         </div>
 
         {/* Table */}
-        <Table 
-          tableName="All Products Inventory" 
-          columns={columns} 
-          data={data} 
-          rowsPerPage={10} 
+        <Table
+          tableName="All Products Inventory"
+          columns={columns}
+          data={data}
+          rowsPerPage={10}
         />
-
       </div>
 
       {/* Add Product Modal */}
@@ -406,9 +449,12 @@ export default function Inventory() {
             {/* Modal Header */}
             <div className="bg-navyBlue flex items-center justify-between p-6 border-b">
               <div>
-                <h2 className="text-xl font-semibold text-gray-200">Add New Sports Product</h2>
+                <h2 className="text-xl font-semibold text-gray-200">
+                  Add New Sports Product
+                </h2>
                 <p className="text-sm text-gray-200 mt-1">
-                  Fill in the details below to add a new sports equipment item to your inventory.
+                  Fill in the details below to add a new sports equipment item
+                  to your inventory.
                 </p>
               </div>
               <button
@@ -456,8 +502,6 @@ export default function Inventory() {
                     </select>
                   </div>
                 </div>
-
-                
 
                 {/* Selling Price and Cost Price Row */}
                 <div className="grid grid-cols-2 gap-4">
@@ -522,21 +566,19 @@ export default function Inventory() {
                 </div>
 
                 {/* Barcode */}
-              
-              
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Barcode
-                    </label>
-                    <input
-                      type="text"
-                      name="barcode"
-                      value={formData.barcode}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
-                    />
-                  </div>
-                
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Barcode
+                  </label>
+                  <input
+                    type="text"
+                    name="barcode"
+                    value={formData.barcode}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -553,7 +595,13 @@ export default function Inventory() {
         </div>
       )}
 
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        product={selectedProduct}
+        categories={categories}
+        onSave={handleSaveProduct}
+      />
     </Layout>
-    
   );
 }

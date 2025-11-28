@@ -72,6 +72,7 @@ const reorderPoint = 5; // Example reorder threshold
   ];
 
 export default function InventoryReport() {
+
   return (
     <div className="flex flex-col space-y-5">
       <div className="flex gap-5 justify-end">

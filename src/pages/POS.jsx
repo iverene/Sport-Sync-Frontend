@@ -108,6 +108,7 @@ export default function POS() {
           {/* Header & Search */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 mt-15 lg:mt-0">
              <div className="w-full sm:w-auto">
+              {/* insert search component */}
                 <Scanner />
              </div>
           </div>
