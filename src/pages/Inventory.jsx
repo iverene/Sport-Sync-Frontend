@@ -250,7 +250,7 @@ export default function Inventory() {
           </div>
 
           {/* Scanner & Add Button */}
-                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 shrink-0 mt-15 lg:mt-0">
+                <div className="flex flex-col sm:flex-row justify-en items-start sm:items-center gap-4 shrink-0 mt-15 lg:mt-0">
                   <div className="w-full sm:w-auto">
                       {/* insert search component */}
                        <Scanner />

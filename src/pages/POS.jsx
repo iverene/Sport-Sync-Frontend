@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import Scanner from "../components/Scanner";
+import Search from "../components/Search";
 import CategoryButton from "../components/pos/CategoryButton.jsx";
 import Product from "../components/pos/Product.jsx";
 import { products, categories } from "../mockData";
@@ -114,6 +115,7 @@ export default function POS() {
     {/* Scanner Component */}
     <div className="shrink-0">
       <Scanner />
+      <Search />
     </div>
   </div>
 </div>
