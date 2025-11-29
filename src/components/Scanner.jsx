@@ -101,7 +101,7 @@ export default function Scanner() {
                   <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-500 -mb-1 -mr-1"></div>
 
                   {/* 2. Moving Red Laser Line */}
-                  <div className="absolute left-0 w-full h-[2px] bg-red-500 animate-scanner-line"></div>
+                  <div className = "absolute left-0 w-full h-[2px] bg-red-500 animate-scanner-line"></div>
                 </div>
               </div>
             </div>

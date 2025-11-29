@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Edit2, UserX, Filter } from 'lucide-react';
 
-const UserManagementTable = () => {
+  const UserManagementTable = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
