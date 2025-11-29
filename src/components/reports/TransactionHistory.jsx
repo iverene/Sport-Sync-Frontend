@@ -2,10 +2,11 @@ import { useState } from "react";
 import Table from "../../components/Table";
 import { transactions, products } from "../../mockData";
 import { Eye } from "lucide-react";
-// import TransactionModal from "../../components/TransactionModal";
+import TransactionModal from "../../components/TransactionModal";
 
 export default function SalesReport() {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [openModal, setOpenModal] = useState(false);  // State for opening/closing the modal
 
   // Predefined badge colors
   const cashierColors = {
@@ -61,10 +62,10 @@ export default function SalesReport() {
       Actions: (
         <button
           className="p-2 text-navyBlue hover:text-darkGreen hover:bg-lightGray rounded transition"
-          // onClick={() => {
-          //   setSelectedTransaction(t);
-          //   setOpenModal(true);
-          // }}
+          onClick={() => {
+            setSelectedTransaction(t);
+            setOpenModal(true);  // Open the modal when the eye icon is clicked
+          }}
         >
           <Eye size={18} />
         </button>
@@ -90,11 +91,12 @@ export default function SalesReport() {
         rowsPerPage={10}
       />
 
-      {/* <TransactionModal
+      {/* Modal Component */}
+      <TransactionModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
+        onClose={() => setOpenModal(false)}  // Close the modal when triggered
         data={selectedTransaction}
-      /> */}
+      />
     </div>
   );
 }
