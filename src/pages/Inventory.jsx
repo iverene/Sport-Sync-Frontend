@@ -137,10 +137,22 @@ export default function Inventory() {
   const categoryMap = getCategoryMap(categories);
 
   const [isAlertOpen, setIsAlertOpen] = useState(true);
+  
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const lowStockList = products
+  .filter((p) => p.quantity > 0 && p.quantity <= 10)
+  .map((p) => ({
+    name: p.product_name,
+    sku: p.barcode,
+    current: p.quantity,
+    minimum: 10,
+    unit: "pcs",
+  }));
+
 
   // Only show popup when there are low stock items
   useEffect(() => {
@@ -313,7 +325,7 @@ export default function Inventory() {
           </div>
 
           {/* Scanner & Add Button */}
-          <div className="flex flex-col sm:flex-row justify-en items-start sm:items-center gap-4 shrink-0 mt-15 lg:mt-0">
+          <div className="flex flex-row justify-end items-center gap-4 shrink-0 mt-15 lg:mt-0">
           
               <Scanner />
 
@@ -321,7 +333,7 @@ export default function Inventory() {
               {(user.role === "Admin" || user.role === "Staff") && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  className="text-softWhite px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                   style={{ backgroundColor: "#004B8D" }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.backgroundColor = "#003366")
@@ -338,7 +350,7 @@ export default function Inventory() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Products */}
           <KpiCard
@@ -558,13 +570,12 @@ export default function Inventory() {
       )}
 
       {isAlertOpen && (
-        <AlertModal
-          lowStockItems={products.filter(
-            (p) => p.quantity > 0 && p.quantity <= 10
-          )}
-          onClose={() => setIsAlertOpen(false)}
-        />
-      )}
+  <AlertModal 
+    lowStockItems={lowStockList}
+    onClose={() => setIsAlertOpen(false)}
+  />
+)}
+
 
       <EditProductModal
         isOpen={isEditModalOpen}
