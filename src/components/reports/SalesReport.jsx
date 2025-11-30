@@ -3,9 +3,10 @@ import ExportButton from "../../components/ExportButton";
 import KpiCard from "../../components/KpiCard";
 import Chart from "../../components/Chart";
 import Table from "../../components/Table";
-import CalendarFilter from "../../components/CalendarFilter";
 import { DollarSign, ShoppingCart, Activity, Star } from "lucide-react";
 import { products, sales, categories, transactions } from "../../mockData";
+import CalendarFilter from  "../../components/CalendarFilter";
+
 
 // ... (Keep your existing data preparation logic for charts) ...
 // 1. Line Chart Data
@@ -153,7 +154,9 @@ export default function SalesReport() {
     <div className="flex flex-col space-y-6" ref={reportRef}>
       <div className="flex gap-5 justify-end">
 
-      <CalendarFilter/>
+      {/* Calendar */}
+
+       <CalendarFilter/>
        
 
           <ExportButton

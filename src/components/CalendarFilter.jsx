@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import "react-datepicker/dist/react-datepicker.css";
+
 import { 
   format, 
   startOfWeek, 
@@ -16,7 +17,7 @@ import {
   subYears
 } from "date-fns";
 
-const options = ["Day", "Week", "Month", "Year"];
+const options = ["Daily", "Weekly", "Monthly", "Yearly"];
 
 export default function CalendarFilter({ onChange }) {
   const [selectedFilter, setSelectedFilter] = useState("Day");
@@ -145,6 +146,7 @@ export default function CalendarFilter({ onChange }) {
     <div className="relative w-72" ref={dropdownRef}>
       {/* Main Button with Navigation */}
       <div className="flex items-center gap-2">
+
         <button
           onClick={() => navigateDate("prev")}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-300"
@@ -207,7 +209,8 @@ export default function CalendarFilter({ onChange }) {
               renderCustomHeader={CustomHeader}
               showPopperArrow={false}
               calendarStartDay={1} // Start week on Monday
-            />
+            />      
+    
           </div>
 
           {/* Quick Actions */}
