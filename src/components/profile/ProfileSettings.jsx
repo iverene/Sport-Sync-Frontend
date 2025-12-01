@@ -1,14 +1,17 @@
 import Layout from "../../components/Layout";
-import { Lock, Eye, EyeOff, Save, ArrowLeft, Check, ShieldCheck, X as XIcon } from "lucide-react";
+import { Lock, Eye, EyeOff, Save, ArrowLeft, Check, ShieldCheck, X as XIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
+import Toast from "../../components/Toast"; // Import Toast
 
 export default function ProfileSettings() {
-  // 1. Toggle Visibility State
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  
+  // New States
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  // 2. Form Data State
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -20,19 +23,33 @@ export default function ProfileSettings() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 3. Validation Logic (Real-time)
   const password = formData.newPassword;
   const validation = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
     number: /[0-9]/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password), // Checks for any non-alphanumeric char
+    symbol: /[^A-Za-z0-9]/.test(password),
     match: password && password === formData.confirmPassword
   };
 
   const isFormValid = 
     Object.values(validation).every(Boolean) && 
     formData.currentPassword.length > 0;
+
+  // Handle Save with Loading
+  const handleSave = () => {
+    if (!isFormValid) return;
+    
+    setIsSaving(true);
+    
+    // Simulate API Delay
+    setTimeout(() => {
+        setIsSaving(false);
+        setToast({ message: "Password changed successfully!", type: "success" });
+        setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" }); // Reset form
+        setTimeout(() => setToast(null), 3000);
+    }, 1500);
+  };
 
   return (
     <Layout>
@@ -55,7 +72,6 @@ export default function ProfileSettings() {
         {/* --- Main Card --- */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           
-          {/* Card Title */}
           <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                 <Lock className="w-5 h-5" />
@@ -68,7 +84,6 @@ export default function ProfileSettings() {
 
           <div className="p-8 space-y-6">
             
-            {/* Current Password */}
             <PasswordField
               label="Current Password"
               name="currentPassword"
@@ -81,7 +96,6 @@ export default function ProfileSettings() {
 
             <div className="border-t border-slate-100 my-2"></div>
 
-            {/* New Password Section */}
             <div className="space-y-6">
                 <PasswordField
                   label="New Password"
@@ -93,7 +107,6 @@ export default function ProfileSettings() {
                   setShow={setShowNew}
                 />
 
-                {/* Password Strength Indicators (FUNCTIONAL) */}
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 transition-all">
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                         <ShieldCheck size={14} /> Password Requirements
@@ -116,7 +129,6 @@ export default function ProfileSettings() {
                   setShow={setShowConfirm}
                 />
                 
-                {/* Match Confirmation */}
                 {formData.confirmPassword && (
                     <div className={`text-xs font-medium flex items-center gap-1.5 ${validation.match ? "text-emerald-600" : "text-rose-500"}`}>
                         {validation.match ? <Check size={14} /> : <XIcon size={14} />}
@@ -126,7 +138,6 @@ export default function ProfileSettings() {
             </div>
           </div>
 
-          {/* Footer Actions */}
           <div className="px-8 py-5 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
             <button
               onClick={() => window.history.back()}
@@ -135,22 +146,42 @@ export default function ProfileSettings() {
               Cancel
             </button>
             <button 
-                disabled={!isFormValid}
+                onClick={handleSave}
+                disabled={!isFormValid || isSaving}
                 className="flex items-center gap-2 px-6 py-2.5 bg-[#002B50] text-white text-sm font-bold rounded-lg hover:bg-[#1f781a] shadow-sm hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="w-4 h-4" />
-              Update Password
+              {isSaving ? (
+                <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Updating...
+                </>
+              ) : (
+                <>
+                    <Save className="w-4 h-4" />
+                    Update Password
+                </>
+              )}
             </button>
           </div>
 
         </div>
       </div>
+
+      {toast && (
+        <div className="fixed z-[9999] top-5 right-5">
+            <Toast
+            message={toast.message}
+            type={toast.type}
+            duration={3000}
+            onClose={() => setToast(null)}
+            />
+        </div>
+      )}
     </Layout>
   );
 }
 
-// --- Helper Components ---
-
+// ... RequirementItem and PasswordField components remain unchanged ...
 function RequirementItem({ text, met }) {
     return (
         <div className={`flex items-center gap-2 text-xs font-medium transition-colors duration-300 ${met ? 'text-emerald-700' : 'text-slate-400'}`}>

@@ -1,7 +1,24 @@
+import { useState } from "react";
 import Layout from "../../components/Layout";
-import { Save, User, Mail, Shield, ArrowLeft } from "lucide-react";
+import { Save, User, Mail, Shield, ArrowLeft, Loader2 } from "lucide-react";
+import Toast from "../../components/Toast"; 
 
 export default function EditProfile() {
+  const [toast, setToast] = useState(null);
+  // NEW: Loading State
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = () => {
+    setIsSaving(true); // Start loading
+    
+    // Simulate API call
+    setTimeout(() => {
+        setIsSaving(false); // Stop loading
+        setToast({ message: "Profile updated successfully!", type: "success" });
+        setTimeout(() => setToast(null), 3000);
+    }, 1500); // Increased delay to show loader
+  };
+
   return (
     <Layout>
       <div className="max-w-3xl mx-auto pb-12">
@@ -22,7 +39,6 @@ export default function EditProfile() {
 
         <div className="space-y-8">
           
-          {/* --- Personal Information --- */}
           <InfoCard
             icon={<User className="w-5 h-5 text-[#002B50]" />}
             title="Personal Information"
@@ -44,7 +60,6 @@ export default function EditProfile() {
             ]}
           />
 
-          {/* --- Contact Information --- */}
           <InfoCard
             icon={<Mail className="w-5 h-5 text-[#002B50]" />}
             title="Contact Information"
@@ -67,19 +82,43 @@ export default function EditProfile() {
             >
               Cancel
             </button>
-            <button className="flex items-center gap-2 px-6 py-2.5 bg-[#002B50] text-white text-sm font-semibold rounded-lg hover:bg-[#1f781a] shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
-              <Save className="w-4 h-4" />
-              Save Changes
+            <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#002B50] text-white text-sm font-semibold rounded-lg hover:bg-[#1f781a] shadow-sm hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isSaving ? (
+                <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                </>
+              ) : (
+                <>
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                </>
+              )}
             </button>
           </div>
 
         </div>
       </div>
+
+      {toast && (
+        <div className="fixed z-[9999] top-5 right-5">
+            <Toast
+            message={toast.message}
+            type={toast.type}
+            duration={3000}
+            onClose={() => setToast(null)}
+            />
+        </div>
+      )}
     </Layout>
   );
 }
 
-// --- Reusable Card Component ---
+// ... InfoCard component remains unchanged ...
 function InfoCard({ icon, title, fields }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
