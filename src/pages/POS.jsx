@@ -119,14 +119,11 @@ export default function POS() {
         <div className="flex-1 flex flex-col gap-4 h-full overflow-hidden">
           
           {/* Header & Search */}
-          <div className="shrink-0 mt-5 lg:mt-0 w-full mb-4 relative z-60"> 
+          <div className="shrink-0 mt-5 lg:mt-0 w-full mb-4 relative z-10"> 
             <div className="flex items-center gap-3 w-full">
-              {/* Search Component */}
               <div className="flex-1">
                 <Search />
               </div>
-
-              {/* Scanner Component */}
               <div className="shrink-0">
                 <Scanner onScan={handleScanResult} />
               </div>
@@ -149,7 +146,7 @@ export default function POS() {
                   {activeCategory === "All" ? "All Products" : activeCategory}
                  </h2>
                  <span className="text-sm text-slate-500 font-medium">
-                    {filtered.length} Items
+                   {filtered.length} Items
                  </span>
             </div>
 
@@ -181,7 +178,10 @@ export default function POS() {
 
         {/* --- RIGHT COLUMN: CART (Fixed Width on Desktop) --- */}
         <div className="
-            fixed bottom-0 left-0 right-0 z-50 h-20 bg-softWhite border-t border-slate-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] lg:shadow-none lg:static lg:h-full lg:w-[400px] lg:flex lg:flex-col lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-softWhite
+            fixed bottom-0 left-0 right-0 h-20 bg-softWhite border-t border-slate-200 p-4 
+            shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 
+            z-10 
+            lg:shadow-none lg:static lg:h-full lg:w-[400px] lg:flex lg:flex-col lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-softWhite
         ">
             {/* Mobile View Summary */}
             <div className="flex lg:hidden justify-between items-center w-full">
@@ -206,7 +206,6 @@ export default function POS() {
                     </h2>
                 </div>
 
-                {/* Scrollable Cart Items */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
                     {cart.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2">
@@ -224,10 +223,7 @@ export default function POS() {
                     )}
                 </div>
 
-                {/* Footer Summary with Payment Methods */}
                 <div className="p-5 bg-slate-50 border-t border-slate-200 mt-auto rounded-b-2xl">
-                    
-                    {/* Payment Method Selector */}
                     <div className="mb-4">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2 block">
                         Payment Method
@@ -262,9 +258,7 @@ export default function POS() {
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="grid grid-cols-4 gap-3">
-                        {/* Clear Button */}
                         <button 
                             disabled={cart.length === 0}
                             onClick={clearCart}
@@ -274,7 +268,6 @@ export default function POS() {
                             <Trash2 size={20} />
                         </button>
 
-                        {/* Checkout Button */}
                         <button 
                             disabled={cart.length === 0}
                             onClick={handleCheckout}
@@ -289,25 +282,29 @@ export default function POS() {
 
       </div>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          duration={2000}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {/* FIX: Wrapped Toast in a high z-index relative container to ensure it stays above the fixed Cart Footer */}
+      <div className="relative z-[9999]">
+        {toast && (
+            <Toast
+            message={toast.message}
+            type={toast.type}
+            duration={2000}
+            onClose={() => setToast(null)}
+            />
+        )}
+      </div>
 
-      {/* Mobile Cart Modal */}
-      <CartModal 
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cart={cart}
-        onIncrease={(id) => updateQuantity(id, 1)}
-        onDecrease={(id) => updateQuantity(id, -1)}
-        onRemove={removeItem}
-        totalAmount={totalAmount}
-      />
+      <div className="relative z-[9999]">
+        <CartModal 
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cart={cart}
+            onIncrease={(id) => updateQuantity(id, 1)}
+            onDecrease={(id) => updateQuantity(id, -1)}
+            onRemove={removeItem}
+            totalAmount={totalAmount}
+        />
+      </div>
     </Layout>
   );
 }

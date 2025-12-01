@@ -170,6 +170,7 @@ export default function Users() {
   // Filter Configuration
   const filterConfig = [
     {
+      id: "role-filter",
       value: roleFilter,
       onChange: (e) => setRoleFilter(e.target.value),
       options: [
@@ -180,6 +181,7 @@ export default function Users() {
       ],
     },
     {
+      id: "status-filter",
       value: statusFilter,
       onChange: (e) => setStatusFilter(e.target.value),
       options: [
