@@ -1,43 +1,72 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // ADDED useCallback
 import Layout from "../components/Layout";
 import Scanner from "../components/Scanner";
 import Search from "../components/Search";
 import CategoryButton from "../components/pos/CategoryButton.jsx";
 import Product from "../components/pos/Product.jsx";
-import { products, categories } from "../mockData";
+// import { products, categories } from "../mockData"; // REMOVED
 import CartModal from "../components/pos/CartModal";
 import CartItem from "../components/pos/CartItem";
-import { ShoppingCart, PackageOpen, Banknote, CreditCard, Smartphone, Trash2 } from "lucide-react";
+import { ShoppingCart, PackageOpen, Banknote, CreditCard, Smartphone, Trash2, Loader2 } from "lucide-react"; // ADDED Loader2
 import Toast from "../components/Toast";
+import API from '../services/api'; // ADDED
+import { useAuth } from '../context/AuthContext'; // ADDED
 
 export default function POS() {
-  const [filtered, setFiltered] = useState(products);
+  const { user } = useAuth(); // ADDED
+  const [allProducts, setAllProducts] = useState([]); // CHANGED from products
+  const [categories, setCategories] = useState([]); // CHANGED from categories
+  const [filtered, setFiltered] = useState([]); // CHANGED to empty array
   const [activeCategory, setActiveCategory] = useState("All");
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(true); // ADDED
   
   const [paymentMethod, setPaymentMethod] = useState("Cash");
 
   const paymentOptions = [
     { id: "Cash", icon: Banknote, label: "Cash" },
     { id: "Card", icon: CreditCard, label: "Card" },
-    { id: "GCash", icon: Smartphone, label: "GCash" },
+    { id: "Mobile", icon: Smartphone, label: "GCash" }, // CHANGED label to Mobile to match backend payment_method array
   ];
+  
+  // FETCH DATA FUNCTION
+  const fetchProductsAndCategories = useCallback(async () => {
+    setLoading(true);
+    try {
+        const [productsRes, categoriesRes] = await Promise.all([
+            API.get('/products', { params: { limit: 1000 } }),
+            API.get('/categories')
+        ]);
+        setAllProducts(productsRes.data.data);
+        setCategories(categoriesRes.data.data);
+    } catch (error) {
+        console.error("Failed to fetch POS data:", error);
+        setToast({ message: "Failed to load products/categories.", type: "error" });
+    } finally {
+        setLoading(false);
+    }
+  }, []); // Empty dependency array
+
+  useEffect(() => {
+    fetchProductsAndCategories();
+  }, [fetchProductsAndCategories]); // Dependency added
+
 
   // --- Filtering Logic ---
   useEffect(() => {
     setFiltered(
       activeCategory === "All"
-        ? products
-        : products.filter((p) =>
+        ? allProducts
+        : allProducts.filter((p) =>
             categories.find(
               (c) =>
-                c.category_name === activeCategory && c.id === p.category_id
+                c.category_name === activeCategory && c.category_id === p.category_id // CHANGED c.id to c.category_id
             )
           )
     );
-  }, [activeCategory]);
+  }, [activeCategory, allProducts, categories]);
 
   // --- Cart Handlers ---
   const addToCart = (product) => {
@@ -47,11 +76,11 @@ export default function POS() {
     }
 
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      const existing = prev.find((item) => item.product_id === product.product_id); // CHANGED item.id to item.product_id
       if (existing) {
         if (existing.quantity < product.quantity) {
           return prev.map((item) =>
-            item.id === product.id
+            item.product_id === product.product_id // CHANGED item.id to item.product_id
               ? { ...item, quantity: item.quantity + 1 }
               : item
           );
@@ -60,13 +89,13 @@ export default function POS() {
              return prev;
         }
       }
-      return [...prev, { ...product, quantity: 1, stock: product.quantity }];
+      return [...prev, { ...product, quantity: 1, stock: product.quantity, id: product.product_id }]; // ADDED id: product.product_id
     });
   };
 
   // --- SCANNER HANDLER ---
   const handleScanResult = (barcodeText) => {
-    const foundProduct = products.find(p => p.barcode === barcodeText);
+    const foundProduct = allProducts.find(p => p.barcode === barcodeText); // CHANGED products to allProducts
 
     if (foundProduct) {
         addToCart(foundProduct);
@@ -97,14 +126,44 @@ export default function POS() {
   const clearCart = () => {
     if(cart.length > 0 && window.confirm("Are you sure you want to clear the cart?")){
         setCart([]);
+        setToast({ message: "Cart cleared.", type: "info" });
     }
   };
 
-  const handleCheckout = () => {
-    setToast({ message: `Processing ${paymentMethod} payment...`, type: "success" });
-    // Logic for transaction
-    setTimeout(() => setCart([]), 1500);
+  const handleCheckout = async () => { // CHANGED TO ASYNC
+    if (cart.length === 0) return;
+
+    try {
+        const transactionPayload = {
+            user_id: user.user_id, // Get the logged-in user ID
+            payment_method: paymentMethod === 'GCash' ? 'Mobile' : paymentMethod, // Map GCash to Mobile for backend
+            total_amount: totalAmount,
+            amount_paid: totalAmount, // Assuming exact payment for now
+            change_due: 0,
+            remarks: 'POS Sale',
+            items: cart.map(item => ({
+                product_id: item.product_id, 
+                quantity: item.quantity,
+                unit_price: item.selling_price,
+                total_price: item.selling_price * item.quantity
+            }))
+        };
+
+        setToast({ message: `Processing ${paymentMethod} payment...`, type: "info" });
+        
+        await API.post('/transactions', transactionPayload); // API call
+        
+        setToast({ message: "Transaction completed successfully!", type: "success" });
+        setCart([]);
+        fetchProductsAndCategories(); // Re-fetch products to update stock levels
+
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || 'Transaction failed due to server error.';
+        console.error('Checkout error:', error.response?.data || error.message);
+        setToast({ message: errorMessage, type: "error" });
+    }
   };
+
 
   const totalAmount = cart.reduce(
     (acc, item) => acc + item.selling_price * item.quantity,
@@ -150,7 +209,12 @@ export default function POS() {
                  </span>
             </div>
 
-            {filtered.length === 0 ? (
+            {loading ? ( // ADDED
+                <div className="flex flex-col items-center justify-center h-64 text-navyBlue">
+                    <Loader2 size={40} className="mb-2 animate-spin" />
+                    <p>Loading products...</p>
+                </div>
+            ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                     <PackageOpen size={48} className="mb-2 opacity-50" />
                     <p>No products found in this category.</p>
@@ -158,13 +222,13 @@ export default function POS() {
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 lg:pb-0">
                 {filtered.map((p) => {
-                    const cartItem = cart.find((c) => c.id === p.id);
+                    const cartItem = cart.find((c) => c.product_id === p.product_id); // CHANGED c.id to c.product_id
                     const inCartQuantity = cartItem ? cartItem.quantity : 0;
                     const isMaxed = inCartQuantity >= p.quantity;
 
                     return (
                         <Product
-                            key={p.id}
+                            key={p.product_id} // CHANGED to product_id
                             product={p}
                             onAdd={() => !isMaxed && addToCart(p)}
                             disabled={isMaxed || p.quantity === 0}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react"; 
 import Layout from "../components/Layout";
 import Table from "../components/Table";
 import KpiCard from "../components/KpiCard";
@@ -6,11 +6,11 @@ import Filter from "../components/Filter";
 import Scanner from "../components/Scanner.jsx";
 import EditProductModal from "../components/inventory/EditProductModal.jsx";
 import AlertModal from "../components/inventory/AlertModal.jsx";
-// Import Toast Component
 import Toast from "../components/Toast"; 
-import { categories, products } from "../mockData"; 
+// import { categories, products } from "../mockData"; // REMOVED MOCK IMPORTS
 import { useAuth } from "../context/AuthContext";
-import { getCategoryMap } from "../utils/Utils.js";
+// import { getCategoryMap } from "../utils/Utils.js"; // REMOVED MOCK UTILS IMPORT
+import API from '../services/api'; // ADDED
 import {
   Package,
   AlertTriangle,
@@ -20,116 +20,19 @@ import {
   Edit,
   PlusCircle,
   X,
+  Loader2 // ADDED
 } from "lucide-react";
 
-export default function Inventory() {
-  const { user } = useAuth();
-  const categoryMap = getCategoryMap(categories);
+// Helper function to create category map from API response
+const getCategoryMap = (categories) => {
+  return (categories || []).reduce((acc, cat) => {
+    acc[cat.category_id] = cat.category_name; // Note: using category_id from backend model
+    return acc;
+  }, {});
+};
 
-  const [isAlertOpen, setIsAlertOpen] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  
-  // NEW: Toast State
-  const [toast, setToast] = useState(null);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    productName: "",
-    category: "",
-    description: "",
-    sellingPrice: "0.00",
-    costPrice: "0.00",
-    initialStock: "0",
-    reorderPoint: "10",
-    supplier: "",
-    barcode: "",
-  });
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedStockLevel, setSelectedStockLevel] = useState("all");
-
-  const handleScan = (scannedBarcode) => {
-    const existingProduct = products.find((p) => p.barcode === scannedBarcode);
-
-    if (existingProduct) {
-      setFormData({
-        productName: existingProduct.product_name,
-        category: String(existingProduct.category_id),
-        description: "", 
-        sellingPrice: existingProduct.selling_price,
-        costPrice: existingProduct.cost_price,
-        initialStock: existingProduct.quantity,
-        reorderPoint: "10",
-        supplier: "",
-        barcode: existingProduct.barcode,
-      });
-    } else {
-      setFormData({
-        productName: "",
-        category: "",
-        description: "",
-        sellingPrice: "0.00",
-        costPrice: "0.00",
-        initialStock: "0",
-        reorderPoint: "10",
-        supplier: "",
-        barcode: scannedBarcode,
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const lowStockList = products
-    .filter((p) => p.quantity > 0 && p.quantity <= 10)
-    .map((p) => ({
-      name: p.product_name,
-      sku: p.barcode,
-      current: p.quantity,
-      minimum: 10,
-      unit: "pcs",
-    }));
-
-  useEffect(() => {
-    if (lowStockList.length > 0) {
-      setIsAlertOpen(true);
-    }
-  }, []);
-
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.product_name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()) || 
-      product.barcode.includes(searchQuery);
-
-    const matchesCategory =
-      selectedCategory === "all" ||
-      String(product.category_id) === selectedCategory;
-
-    let matchesStockLevel = true;
-    if (selectedStockLevel === "in-stock")
-      matchesStockLevel = product.quantity > 0;
-    else if (selectedStockLevel === "low-stock")
-      matchesStockLevel = product.quantity > 0 && product.quantity <= 10;
-    else if (selectedStockLevel === "out-of-stock")
-      matchesStockLevel = product.quantity === 0;
-
-    return matchesSearch && matchesCategory && matchesStockLevel;
-  });
-
-  const totalProducts = products.length;
-  const lowStockItems = products.filter(
-    (p) => p.quantity > 0 && p.quantity <= 10
-  ).length;
-  const outOfStockItems = products.filter((p) => p.quantity === 0).length;
-  const inventoryValue = products.reduce(
-    (sum, p) => sum + parseFloat(p.cost_price) * p.quantity,
-    0
-  );
-
-  const columns = [
+// --- FIX 2: Define Table Columns (Missing in previous version) ---
+const columns = [
     { header: "Product", accessor: "Product" },
     { header: "Category", accessor: "Category" },
     { header: "Cost Price", accessor: "Cost Price" },
@@ -137,49 +40,247 @@ export default function Inventory() {
     { header: "Stock", accessor: "Stock" },
     { header: "Status", accessor: "Status" },
     { header: "Actions", accessor: "Actions" },
-  ];
+];
+
+
+export default function Inventory() {
+  const { user } = useAuth();
+  
+  // NEW STATES FOR API DATA
+  // FIX: Initialize products as an empty array to prevent map() crash
+  const [products, setProducts] = useState([]); 
+  const [categories, setCategories] = useState([]);
+  const [inventoryKpis, setInventoryKpis] = useState(null);
+  const [loading, setLoading] = useState(true); // Manages initial loading
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const [formData, setFormData] = useState({
+    productName: "",
+    category: "",
+    sellingPrice: "0.00",
+    costPrice: "0.00",
+    initialStock: "0",
+    reorderPoint: "10",
+    barcode: "",
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStockLevel, setSelectedStockLevel] = useState("all");
+  
+  // FETCH DATA FUNCTION
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    // FIX: Use empty arrays/null defaults for safety during destructu ring
+    let fetchedCategories = [];
+    let fetchedProducts = [];
+    let fetchedReport = null;
+
+    try {
+      // 1. Fetch Categories
+      const catResponse = await API.get('/categories');
+      fetchedCategories = catResponse.data.data || []; // SAFE DEFAULT
+
+      setCategories(fetchedCategories);
+      
+      // 2. Fetch Inventory Report/KPIs
+      const reportResponse = await API.get('/reports/inventory');
+      fetchedReport = reportResponse.data.data || {}; // SAFE DEFAULT
+
+      setInventoryKpis(fetchedReport.summary);
+      
+      // 3. Fetch Products
+      const fetchParams = {
+        limit: 1000, 
+        search: searchQuery,
+        category_id: selectedCategory === 'all' ? undefined : selectedCategory,
+      };
+
+      const prodResponse = await API.get('/products', { params: fetchParams });
+      fetchedProducts = prodResponse.data.data || []; // SAFE DEFAULT
+      
+      // Manually filter based on local stock level filter using the report's low stock logic (reorder_level)
+      let finalProducts = fetchedProducts;
+      
+      if (selectedStockLevel !== 'all') {
+        finalProducts = finalProducts.filter(p => {
+            // FIX: Ensure reorder_level exists or defaults to 5
+            const reorderLevel = p.reorder_level || 5; 
+            switch(selectedStockLevel) {
+                case 'out-of-stock':
+                    return p.quantity === 0;
+                case 'low-stock':
+                    return p.quantity > 0 && p.quantity <= reorderLevel;
+                case 'in-stock':
+                    return p.quantity > reorderLevel;
+                default:
+                    return true;
+            }
+        });
+      }
+      
+      setProducts(finalProducts);
+      
+      // Trigger Alert Modal Check after fetching
+      const lowStockProducts = fetchedReport.products_requiring_attention;
+      if (lowStockProducts && lowStockProducts.length > 0) {
+        setIsAlertOpen(true);
+      }
+
+    } catch (error) {
+      console.error("Failed to fetch inventory data:", error);
+      // If any API call fails, ensure the data arrays are reset or kept empty
+      setProducts([]); 
+      setCategories([]);
+      setInventoryKpis(null);
+      setToast({ message: "Failed to load inventory data. Check backend console for details.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, selectedCategory, selectedStockLevel]); 
+  
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+
+  const handleScan = (scannedBarcode) => {
+    // API call to check if product exists by barcode
+    API.get(`/products/barcode/${scannedBarcode}`)
+      .then(response => {
+        const existingProduct = response.data.data;
+        setFormData({
+          productName: existingProduct.product_name,
+          category: String(existingProduct.category_id),
+          sellingPrice: existingProduct.selling_price,
+          costPrice: existingProduct.cost_price,
+          initialStock: existingProduct.quantity,
+          reorderPoint: existingProduct.reorder_level || "10",
+          barcode: existingProduct.barcode,
+        });
+        setToast({ message: `Product ${existingProduct.product_name} found!`, type: "info" });
+      })
+      .catch(() => {
+        setFormData({
+          productName: "", category: "", sellingPrice: "0.00", costPrice: "0.00", initialStock: "0", reorderPoint: "10",
+          barcode: scannedBarcode,
+        });
+        setToast({ message: `Barcode ${scannedBarcode} not found. Ready to create.`, type: "warning" });
+      })
+      .finally(() => setIsModalOpen(true));
+  };
+
 
   const handleEditClick = (product) => {
     setSelectedProduct(product);
     setIsEditModalOpen(true);
   };
+  
+  const handleSaveProduct = async (updatedProduct) => {
+    const productId = updatedProduct.product_id;
+    // FIX: Use current 'products' state for finding the old product
+    const oldProduct = products.find(p => p.product_id === productId); 
 
-  const handleSaveProduct = (updatedProduct) => {
-    console.log("Saving:", updatedProduct);
+    try {
+        // 1. Update Product Details (PUT)
+        const productDetailsPayload = {
+            product_name: updatedProduct.productName, 
+            category_id: parseInt(updatedProduct.categoryId), 
+            selling_price: parseFloat(updatedProduct.sellingPrice),
+            cost_price: parseFloat(updatedProduct.costPrice),
+            reorder_level: parseInt(updatedProduct.reorderPoint),
+        };
+        await API.put(`/products/${productId}`, productDetailsPayload);
+
+        // 2. Update Stock (PATCH) only if quantity changed
+        if (oldProduct && oldProduct.quantity !== updatedProduct.quantity) {
+             const stockPayload = {
+                 quantity: updatedProduct.quantity,
+                 change_type: 'Manual Adjustment'
+             };
+             await API.patch(`/products/${productId}/stock`, stockPayload);
+        }
+
+        setToast({ message: "Product updated successfully!", type: "success" });
+        fetchData(); // Re-fetch to update the table
+        
+    } catch (error) {
+        const msg = error.response?.data?.message || 'Failed to update product.';
+        setToast({ message: msg, type: "error" });
+    }
   };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- UPDATED SUBMIT LOGIC ---
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { 
     e.preventDefault();
     
-    // Simple Validation
-    if (!formData.productName || !formData.category || !formData.sellingPrice) {
-      setToast({ message: "Please fill in all required fields.", type: "error" });
-      return; // Stop function if validation fails
+    if (!formData.productName || !formData.category || !formData.sellingPrice || !formData.barcode) {
+      setToast({ message: "Please fill in all required fields (Name, Category, Price, Barcode).", type: "error" });
+      return; 
     }
 
     try {
-      // Simulate API call or data saving
-      console.log("Form submitted:", formData);
+      const payload = {
+        barcode: formData.barcode,
+        product_name: formData.productName,
+        category_id: parseInt(formData.category),
+        cost_price: parseFloat(formData.costPrice),
+        selling_price: parseFloat(formData.sellingPrice),
+        quantity: parseInt(formData.initialStock),
+        reorder_level: parseInt(formData.reorderPoint),
+      };
+
+      // API call to create product
+      const response = await API.post('/products', payload);
       
-      // Success Feedback
-      setToast({ message: "Product added successfully!", type: "success" });
-      setIsModalOpen(false); // Close Modal on success
+      setToast({ message: response.data.message, type: "success" });
+      fetchData(); // Re-fetch data to update table
+      
+      setIsModalOpen(false);
     } catch (error) {
-      // Fail Feedback
-      setToast({ message: "Failed to add product.", type: "error" });
+      const msg = error.response?.data?.message || 'Failed to add product. Check if barcode already exists.';
+      setToast({ message: msg, type: "error" });
     }
   };
 
-  const data = filteredProducts.map((p) => ({
-    id: p.id,
+  const handleDelete = async (productId) => { 
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      const response = await API.delete(`/products/${productId}`);
+      setToast({ message: response.data.message, type: "success" });
+      fetchData();
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to delete product.';
+      setToast({ message: msg, type: "error" });
+    }
+  };
+
+  const categoryMap = getCategoryMap(categories); 
+
+  // FIX: Use products state as fallback if inventoryKpis is null
+  const lowStockList = ((inventoryKpis && inventoryKpis.products_requiring_attention) || products || []).map((p) => ({
+    name: p.product_name,
+    sku: p.barcode,
+    current: p.quantity,
+    minimum: p.reorder_level || 5, // Use backend's reorder level
+    unit: "units",
+  }));
+
+  // FIX: Use products state directly in map, it is initialized to []
+  const data = products.map((p) => ({
+    id: p.product_id, 
     Product: p.product_name,
-    Category: categoryMap[p.category_id],
+    Category: categoryMap[p.category_id] || 'N/A', // Handle case where category is not found
     "Cost Price": `₱${parseFloat(p.cost_price).toLocaleString("en-PH", {
       minimumFractionDigits: 2,
     })}`,
@@ -217,7 +318,7 @@ export default function Inventory() {
             <Edit size={16} />
           </button>
           <button
-            onClick={() => console.log("Delete", p)}
+            onClick={() => handleDelete(p.product_id)} 
             className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded transition-colors"
           >
             <Trash2 size={16} />
@@ -233,8 +334,9 @@ export default function Inventory() {
       onChange: (e) => setSelectedCategory(e.target.value),
       options: [
         { value: "all", label: "All Categories" },
+        // FIX: Added key prop in map inside Filter component (this part is assumed to be fixed in Filter.jsx)
         ...categories.map((cat) => ({
-          value: String(cat.id), 
+          value: String(cat.category_id), 
           label: cat.category_name,
         })),
       ],
@@ -264,7 +366,8 @@ export default function Inventory() {
           </div>
 
           <div className="flex flex-row justify-end items-center gap-4 shrink-0 mt-15 lg:mt-0">
-            <Scanner onScan={handleScan} />
+            {/* FIX: Ensure key is used if scanner is rendered in a list or repeated map */}
+            <Scanner key="main-scanner" onScan={handleScan} /> 
             
             {(user.role === "Admin" || user.role === "Staff") && (
               <button
@@ -272,12 +375,10 @@ export default function Inventory() {
                   setFormData({
                     productName: "",
                     category: "",
-                    description: "",
                     sellingPrice: "0.00",
                     costPrice: "0.00",
                     initialStock: "0",
                     reorderPoint: "10",
-                    supplier: "",
                     barcode: "",
                   });
                   setIsModalOpen(true);
@@ -298,36 +399,52 @@ export default function Inventory() {
           </div>
         </div>
 
+        {loading ? ( 
+            <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl shadow-sm">
+                <Loader2 className="w-8 h-8 animate-spin text-navyBlue" />
+                <p className="text-slate-500 mt-4">Loading inventory data from server...</p>
+            </div>
+        ) : (
+        <>
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Products */}
           <KpiCard
             bgColor="#002B50"
             title="Total Products"
             icon={<Package />}
-            value={totalProducts}
+            value={inventoryKpis?.total_products || 0}
           />
+
+          {/* Low Stock */}
           <KpiCard
             bgColor="#F39C12"
             title="Low Stock"
             icon={<AlertTriangle />}
-            value={lowStockItems}
+            value={inventoryKpis?.low_stock_count || 0}
           />
+
+          {/* Out of Stock */}
           <KpiCard
             bgColor="#E74C3C"
             title="Out of Stock"
             icon={<TrendingDown />}
-            value={outOfStockItems}
+            value={inventoryKpis?.out_of_stock_count || 0}
           />
+
+          {/* Inventory Value */}
           <KpiCard
             bgColor="#1f781a"
             title="Inventory Value"
             icon={<DollarSign />}
-            value={`₱${inventoryValue.toLocaleString("en-PH", {
+            value={`₱${(inventoryKpis?.total_inventory_value || 0).toLocaleString("en-PH", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}`}
           />
         </div>
 
+        {/* Reusable Filter */}
         <Filter
           searchQuery={searchQuery}
           onSearchChange={(e) => setSearchQuery(e.target.value)}
@@ -343,15 +460,18 @@ export default function Inventory() {
             setSelectedCategory("all");
             setSelectedStockLevel("all");
           }}
-          resultsCount={`Showing ${filteredProducts.length} products`}
+          resultsCount={`Showing ${products.length} products`}
         />
 
+        {/* Table */}
         <Table
           tableName="All Products Inventory"
           columns={columns}
           data={data}
           rowsPerPage={10}
         />
+        </>
+        )} 
       </div>
 
       {isModalOpen && (
@@ -384,7 +504,7 @@ export default function Inventory() {
               </button>
             </div>
 
-            <div className="p-6">
+            <form onSubmit={handleSubmit} className="p-6"> 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -398,6 +518,7 @@ export default function Inventory() {
                       onChange={handleInputChange}
                       placeholder="Product name"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
+                      required
                     />
                   </div>
                   <div>
@@ -409,10 +530,11 @@ export default function Inventory() {
                       value={formData.category}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
+                      required
                     >
                       <option value="">Select category</option>
                       {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
+                        <option key={cat.category_id} value={cat.category_id}>
                           {cat.category_name}
                         </option>
                       ))}
@@ -433,6 +555,7 @@ export default function Inventory() {
                       placeholder="0.00"
                       step="0.01"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
+                      required
                     />
                   </div>
                   <div>
@@ -482,27 +605,30 @@ export default function Inventory() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Barcode
+                    Barcode <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="barcode"
                     value={formData.barcode}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200 text-gray-500 cursor-not-allowed focus:outline-none"
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                    required
                   />
                 </div>
               </div>
-            </div>
+            
 
+            {/* Modal Footer */}
             <div className="p-6">
               <button
-                onClick={handleSubmit}
+                type="submit"
                 className="w-full bg-navyBlue text-white py-3 rounded-lg font-medium hover:bg-green-800 transition-colors"
               >
                 Add Product
               </button>
             </div>
+            </form>
           </div>
         </div>
       )}
@@ -518,6 +644,7 @@ export default function Inventory() {
             />
         </div>
       )}
+
 
       {isAlertOpen && (
         <AlertModal

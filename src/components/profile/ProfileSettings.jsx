@@ -1,7 +1,8 @@
 import Layout from "../../components/Layout";
-import { Lock, Eye, EyeOff, Save, ArrowLeft, Check, ShieldCheck, X as XIcon, Loader2 } from "lucide-react";
+import { Lock, Eye, EyeOff, Save, ArrowLeft, Check, ShieldCheck, X as XIcon, Loader2 } from "lucide-react"; // ADDED Loader2
 import { useState } from "react";
-import Toast from "../../components/Toast"; // Import Toast
+import Toast from "../../components/Toast"; // ADDED
+import API from '../../services/api'; // ADDED
 
 export default function ProfileSettings() {
   const [showCurrent, setShowCurrent] = useState(false);
@@ -37,18 +38,30 @@ export default function ProfileSettings() {
     formData.currentPassword.length > 0;
 
   // Handle Save with Loading
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isFormValid) return;
     
     setIsSaving(true);
-    
-    // Simulate API Delay
-    setTimeout(() => {
-        setIsSaving(false);
+    setToast(null);
+
+    try {
+        const passwordPayload = {
+            current_password: formData.currentPassword,
+            new_password: formData.newPassword
+        };
+        // API call to change password 
+        await API.post('/auth/change-password', passwordPayload);
+        
         setToast({ message: "Password changed successfully!", type: "success" });
         setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" }); // Reset form
+
+    } catch (error) {
+        const msg = error.response?.data?.message || "Failed to change password.";
+        setToast({ message: msg, type: "error" });
+    } finally {
+        setIsSaving(false);
         setTimeout(() => setToast(null), 3000);
-    }, 1500);
+    }
   };
 
   return (
@@ -181,7 +194,6 @@ export default function ProfileSettings() {
   );
 }
 
-// ... RequirementItem and PasswordField components remain unchanged ...
 function RequirementItem({ text, met }) {
     return (
         <div className={`flex items-center gap-2 text-xs font-medium transition-colors duration-300 ${met ? 'text-emerald-700' : 'text-slate-400'}`}>
