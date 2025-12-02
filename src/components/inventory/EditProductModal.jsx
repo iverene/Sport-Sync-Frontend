@@ -12,7 +12,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
 
   // State for stock adjustment logic
   const [currentStock, setCurrentStock] = useState(0);
-  const [adjustType, setAdjustType] = useState("add"); // 'add' or 'remove'
+  const [adjustType, setAdjustType] = useState("add"); 
   const [adjustQty, setAdjustQty] = useState(0);
 
   // Populate form when product changes
@@ -26,7 +26,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
         reorderPoint: product.reorder_point || 0,
       });
       setCurrentStock(product.quantity || 0);
-      setAdjustQty(0); // Reset adjustment
+      setAdjustQty(0); 
       setAdjustType("add");
     }
   }, [product, isOpen]);
@@ -36,7 +36,6 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Calculate the resulting stock based on adjustment
   const resultingStock =
     adjustType === "add"
       ? parseInt(currentStock) + (parseInt(adjustQty) || 0)
@@ -50,7 +49,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
       selling_price: parseFloat(formData.sellingPrice),
       cost_price: parseFloat(formData.costPrice),
       reorder_point: parseInt(formData.reorderPoint),
-      quantity: resultingStock, // Send the calculated new stock
+      quantity: resultingStock, 
     };
 
     onSave(updatedProduct);
@@ -60,8 +59,14 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-charcoalBlack/40 bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-softWhite rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar animate-in fade-in zoom-in duration-200">
+    <div 
+      className="fixed inset-0 bg-charcoalBlack/40 bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-softWhite rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()} 
+      >
         
         {/* Modal Header */}
         <div className="bg-navyBlue flex items-center justify-between p-6 border-b border-navyBlue/80">

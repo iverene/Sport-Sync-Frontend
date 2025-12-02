@@ -1,8 +1,51 @@
+import { useState, useEffect } from "react";
 import ExportButton from "../../components/ExportButton";
-import { mockReports } from "../../mockData";
-import { Clock, Calendar, ChartLine, TrendingUp, BarChart } from "lucide-react";
+import CalendarFilter from "../../components/CalendarFilter";
+import API from "../../services/api";
+import { Clock, Calendar, ChartLine, TrendingUp, FileText, Download, Loader2 } from "lucide-react";
+
+
 
 export default function AutomatedReports() {
+
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchHistory = async () => {
+    try {
+      const response = await API.get('/reports/history');
+      setReports(response.data.data || []);
+    } catch (error) {
+      console.error("Failed to load report history", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const handleDownload = async (reportId, type) => {
+    try {
+        const response = await API.get(`/reports/download`, {
+            params: { id: reportId, format: 'pdf' },
+            responseType: 'blob' 
+        });
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${type}_Report.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        console.error("Download failed", error);
+        alert("Failed to download report");
+    }
+  };
+
   return (
     <div className="flex flex-col space-y-5">
 
@@ -56,41 +99,49 @@ export default function AutomatedReports() {
       </div>
 
         <div className="flex justify-end">
-                  {/* insert calendar */}
+                  <CalendarFilter />
         </div>
 
       {/* List of Auto-Generated Reports */}
       <div className="default-container">
-        <h3 className="text-gray-800">Auto-Generated Reports</h3>
+        <h3 className="title mb-4">Report History</h3>
 
-        <div className="mt-4 space-y-3">
-          {mockReports.map((report, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer"
-            >
-              {/* Report Item */}
-              <div className="flex items-center gap-5">
-                <div>
-                  <BarChart size={20} className="text-navyBlue" />
+        {loading ? (
+             <div className="flex justify-center p-8"><Loader2 className="animate-spin text-navyBlue"/></div>
+        ) : reports.length === 0 ? (
+             <p className="text-slate-500 text-sm">No automated reports generated yet.</p>
+        ) : (
+            <div className="space-y-3">
+            {reports.map((report) => (
+                <div
+                key={report.report_id}
+                className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-navyBlue/30 transition"
+                >
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-blue-50 text-navyBlue rounded-lg">
+                        <FileText size={20} />
+                    </div>
+                    <div>
+                    <p className="font-semibold text-sm text-charcoalBlack">
+                        {report.report_type} Report
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        Period: {new Date(report.period_start).toLocaleDateString()} - {new Date(report.period_end).toLocaleDateString()}
+                    </p>
+                    </div>
                 </div>
 
-                <div>
-                  <p className="font-semibold text-sm text-charcoalBlack">
-                    {report.type}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {report.date || report.weekRange || report.month}
-                  </p>
+                <button 
+                    onClick={() => handleDownload(report.report_id, report.report_type)}
+                    className="flex items-center gap-2 text-sm text-navyBlue hover:text-darkGreen font-medium px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                    <Download size={16} />
+                    Download
+                </button>
                 </div>
-              </div>
-
-              <div>
-                <ExportButton />
-              </div>
+            ))}
             </div>
-          ))}
-        </div>
+        )}
       </div>
     </div>
   );
