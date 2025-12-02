@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Scan, Camera, ChevronDown } from "lucide-react";
+import { X, Scan, ChevronDown } from "lucide-react";
 import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 
 export default function Scanner({ onScan }) {
@@ -13,25 +13,37 @@ export default function Scanner({ onScan }) {
   const codeReader = useRef(new BrowserMultiFormatReader());
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Clean up when closed
+      codeReader.current.reset();
+      return;
+    }
 
     let mounted = true;
 
     const getDevices = async () => {
       try {
+        // FIX: Explicitly ask for permission first. 
+        // This ensures external/virtual cameras (like Iriun) are enumerated correctly.
+        await navigator.mediaDevices.getUserMedia({ video: true });
+
         const devices = await codeReader.current.listVideoInputDevices();
+        
         if (mounted) {
             setVideoInputDevices(devices);
             if (devices.length > 0) {
-                const defaultDevice = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
-                setSelectedDeviceId(defaultDevice.deviceId);
+                // If we don't have a selected device yet, pick one
+                if (!selectedDeviceId) {
+                    const defaultDevice = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
+                    setSelectedDeviceId(defaultDevice.deviceId);
+                }
             } else {
                 setErrorMsg("No camera found.");
             }
         }
       } catch (err) {
         console.error("Permission Error:", err);
-        if (mounted) setErrorMsg("Camera permission denied.");
+        if (mounted) setErrorMsg("Camera permission denied or device not found.");
       }
     };
 
@@ -39,17 +51,20 @@ export default function Scanner({ onScan }) {
 
     return () => {
       mounted = false;
-      codeReader.current.reset();
+      // We don't reset here immediately to prevent flickering if component re-renders,
+      // but we depend on isOpen to handle the major cleanup.
     };
-  }, [isOpen]);
+  }, [isOpen, selectedDeviceId]); // Added selectedDeviceId to deps to ensure stability
 
 
   const startScanning = useCallback(async (deviceId) => {
     if (!deviceId || !videoRef.current) return;
 
     try {
+      // Reset any existing stream first
       codeReader.current.reset();
       
+      // Slight delay to ensure video element is ready in DOM
       setTimeout(async () => {
           if (!videoRef.current) return; 
 
@@ -58,20 +73,20 @@ export default function Scanner({ onScan }) {
             videoRef.current,
             (result, err) => {
               if (result) {
-
                 const text = result.getText();
                 console.log("Scanned:", text);
                 
                 if (onScan) {
                    onScan(text);
                 }
-
+                
+                // Stop scanning after successful scan
                 codeReader.current.reset();
-
                 setIsOpen(false);
               }
               
               if (err && !(err instanceof NotFoundException)) {
+                 // console.warn(err);
               }
             }
           );
@@ -83,6 +98,7 @@ export default function Scanner({ onScan }) {
     }
   }, [onScan]);
 
+  // Trigger scanning when the modal is open and we have a device ID
   useEffect(() => {
     if (isOpen && selectedDeviceId) {
         startScanning(selectedDeviceId);
@@ -102,7 +118,7 @@ export default function Scanner({ onScan }) {
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-charcoalBlack/40 flex items-center justify-center z-100 px-4">
+        <div className="fixed inset-0 bg-charcoalBlack/40 flex items-center justify-center z-[100] px-4">
           <div className="bg-white rounded-xl w-full max-w-sm p-4 relative space-y-4 shadow-2xl">
             
             {/* Header */}
@@ -117,7 +133,10 @@ export default function Scanner({ onScan }) {
                         <select 
                             className="appearance-none w-full bg-slate-100 border border-slate-200 text-slate-700 text-xs py-2 pl-3 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#002B50]"
                             value={selectedDeviceId}
-                            onChange={(e) => setSelectedDeviceId(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedDeviceId(e.target.value);
+                                // The useEffect will handle restarting the scan with the new ID
+                            }}
                         >
                             {videoInputDevices.map((device) => (
                                 <option key={device.deviceId} value={device.deviceId}>
@@ -133,7 +152,10 @@ export default function Scanner({ onScan }) {
               </div>
               
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                    setIsOpen(false);
+                    codeReader.current.reset(); // Stop camera when closing manually
+                }}
                 className="text-gray-400 hover:text-red-500 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <X size={22} />
@@ -147,6 +169,7 @@ export default function Scanner({ onScan }) {
                 className="w-full h-full object-cover opacity-80"
                 muted
                 autoPlay
+                playsInline // FIX: Essential for iOS and some mobile browsers
               />
 
               {/* --- Visual Guides --- */}
@@ -158,7 +181,6 @@ export default function Scanner({ onScan }) {
                   <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-green-500 -mb-1 -ml-1"></div>
                   <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-500 -mb-1 -mr-1"></div>
 
-
                   <div className = "absolute left-0 w-full h-0.5 bg-red-500 animate-scanner-line"></div>
                 </div>
               </div>
@@ -167,6 +189,7 @@ export default function Scanner({ onScan }) {
             <p className="text-xs text-center text-slate-400 font-medium">
               Select your camera above if the image is blank
             </p>
+            {errorMsg && <p className="text-xs text-center text-red-500">{errorMsg}</p>}
           </div>
         </div>
       )}
