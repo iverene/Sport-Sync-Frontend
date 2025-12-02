@@ -1,8 +1,8 @@
 import Layout from "../../components/Layout";
-import { Lock, Eye, EyeOff, Save, ArrowLeft, Check, ShieldCheck, X as XIcon, Loader2 } from "lucide-react"; // ADDED Loader2
+import { Lock, Eye, EyeOff, Save, ArrowLeft, Check, ShieldCheck, X as XIcon, Loader2 } from "lucide-react"; 
 import { useState } from "react";
-import Toast from "../../components/Toast"; // ADDED
-import API from '../../services/api'; // ADDED
+import Toast from "../../components/Toast"; 
+import API from '../../services/api'; 
 
 export default function ProfileSettings() {
   const [showCurrent, setShowCurrent] = useState(false);
@@ -26,18 +26,16 @@ export default function ProfileSettings() {
 
   const password = formData.newPassword;
   const validation = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password),
+    length: password.length >= 6, // Backend requires min 6
     match: password && password === formData.confirmPassword
   };
 
   const isFormValid = 
-    Object.values(validation).every(Boolean) && 
+    validation.length &&
+    validation.match &&
     formData.currentPassword.length > 0;
 
-  // Handle Save with Loading
+  // Handle Save
   const handleSave = async () => {
     if (!isFormValid) return;
     
@@ -60,7 +58,6 @@ export default function ProfileSettings() {
         setToast({ message: msg, type: "error" });
     } finally {
         setIsSaving(false);
-        setTimeout(() => setToast(null), 3000);
     }
   };
 
@@ -125,10 +122,9 @@ export default function ProfileSettings() {
                         <ShieldCheck size={14} /> Password Requirements
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
-                        <RequirementItem text="At least 8 characters" met={validation.length} />
-                        <RequirementItem text="1 uppercase letter" met={validation.uppercase} />
-                        <RequirementItem text="1 number" met={validation.number} />
-                        <RequirementItem text="1 symbol (!@#$)" met={validation.symbol} />
+                        <RequirementItem text="At least 6 characters" met={validation.length} />
+                        {/* Note: Backend validation only strictly checks min length: 6. 
+                            Other complexities are client-side preference unless updated in backend. */}
                     </div>
                 </div>
 
