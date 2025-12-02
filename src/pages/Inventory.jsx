@@ -275,7 +275,7 @@ export default function Inventory() {
 
   const categoryMap = getCategoryMap(categories); 
 
-  // --- RE-ADDED MISSING VARIABLE DEFINITION ---
+
   const lowStockList = ((inventoryKpis && inventoryKpis.products_requiring_attention) || products || []).map((p) => ({
     name: p.product_name,
     sku: p.barcode,
