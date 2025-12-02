@@ -18,7 +18,9 @@ import {
   Edit,
   PlusCircle,
   X,
-  Loader2 
+  Loader2,
+  Archive,
+  RotateCcw
 } from "lucide-react";
 
 // Helper function to create category map from API response
@@ -126,7 +128,7 @@ export default function Inventory() {
       console.error("Failed to fetch inventory data:", error.response?.data || error);
       setProducts([]); 
       setInventoryKpis(null);
-      setToast({ message: "Failed to load inventory data. Check server connection.", type: "error" });
+      setToast({ message: "Failed to load inventory data.", type: "error" });
     } finally {
       setIsFetching(false);
       setIsInitialLoading(false);
@@ -139,47 +141,78 @@ export default function Inventory() {
 
   // --- HANDLERS ---
 
-  const handleDelete = async (productId) => { 
-    if (!window.confirm("Are you sure you want to delete this product? This action cannot be undone.")) return;
-
-    try {
-      const response = await API.delete(`/products/${productId}`);
-      setToast({ message: response.data.message, type: "success" });
-      fetchData(); // Refresh list
-    } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to delete product.';
-      setToast({ message: msg, type: "error" });
-    }
-  };
-
   const handleScan = (scannedBarcode) => {
     API.get(`/products/barcode/${scannedBarcode}`)
       .then(response => {
         const existingProduct = response.data.data;
-        setFormData({
-          productName: existingProduct.product_name,
-          category: String(existingProduct.category_id),
-          sellingPrice: String(existingProduct.selling_price),
-          costPrice: String(existingProduct.cost_price),
-          initialStock: String(existingProduct.quantity),
-          reorderPoint: String(existingProduct.reorder_level || "10"),
-          barcode: existingProduct.barcode,
-        });
-        setToast({ message: `Product ${existingProduct.product_name} found!`, type: "info" });
+        
+        // --- FIX: OPEN EDIT MODAL IF FOUND ---
+        setSelectedProduct(existingProduct);
+        setIsEditModalOpen(true);
+        setIsModalOpen(false);
+        
+        setToast({ message: `Product "${existingProduct.product_name}" found!`, type: "success" });
       })
       .catch(() => {
+        // --- FIX: OPEN ADD MODAL IF NOT FOUND ---
         setFormData({
-          productName: "", category: "", sellingPrice: "0.00", costPrice: "0.00", initialStock: "0", reorderPoint: "10",
+          productName: "",
+          category: "",
+          sellingPrice: "0.00",
+          costPrice: "0.00",
+          initialStock: "0",
+          reorderPoint: "10",
           barcode: scannedBarcode,
         });
-        setToast({ message: `Barcode ${scannedBarcode} not found. Ready to create.`, type: "warning" });
-      })
-      .finally(() => setIsModalOpen(true));
+        
+        setIsModalOpen(true);
+        setIsEditModalOpen(false);
+        
+        setToast({ message: `Barcode ${scannedBarcode} not found. Ready to add.`, type: "info" });
+      });
   };
 
   const handleEditClick = (product) => {
     setSelectedProduct(product);
     setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (product) => { 
+    if (!window.confirm(`Are you sure you want to delete "${product.product_name}"?`)) return;
+
+    try {
+      const response = await API.delete(`/products/${product.product_id}`);
+      setToast({ message: response.data.message, type: "success" });
+      fetchData(); 
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to delete product.';
+      
+      // If delete fails due to history, offer to Archive instead
+      if (error.response?.status === 400 && msg.toLowerCase().includes('transaction history')) {
+          if (window.confirm("This product cannot be deleted because it has sales history. Do you want to ARCHIVE (Deactivate) it instead?")) {
+              try {
+                  await API.put(`/products/${product.product_id}`, { status: 'Inactive' });
+                  setToast({ message: "Product archived successfully.", type: "success" });
+                  fetchData();
+              } catch (archiveErr) {
+                  setToast({ message: "Failed to archive product.", type: "error" });
+              }
+          }
+      } else {
+          setToast({ message: msg, type: "error" });
+      }
+    }
+  };
+
+  const handleRestore = async (product) => {
+    if (!window.confirm(`Restore "${product.product_name}" to active inventory?`)) return;
+    try {
+        await API.put(`/products/${product.product_id}`, { status: 'Active' });
+        setToast({ message: "Product restored successfully!", type: "success" });
+        fetchData();
+    } catch (error) {
+        setToast({ message: "Failed to restore product.", type: "error" });
+    }
   };
   
   const handleSaveProduct = async (updatedProduct) => {
@@ -256,48 +289,53 @@ export default function Inventory() {
     unit: "units",
   }));
 
-  const data = products.map((p) => ({
-    id: p.product_id, 
-    Product: p.product_name,
-    Category: categoryMap[p.category_id] || 'N/A', 
-    "Cost Price": `₱${parseFloat(p.cost_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
-    "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
-    Stock: (
-      <span className={p.quantity === 0 ? "text-red-500 font-bold" : "text-emerald-600 font-bold"}>
-        {p.quantity}
-      </span>
-    ),
-    Status: p.quantity === 0 ? (
-        <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span>
-      ) : (
-        <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>
-      ),
-    Actions: (
-        <div className="flex gap-2">
-          {/* Edit Button: Visible to Admin and Staff */}
-          {(user.role === "Admin" || user.role === "Staff") && (
-            <button
-              onClick={() => handleEditClick(p)}
-              className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-100 hover:bg-blue-50 rounded transition-colors"
-              title="Edit Product"
-            >
-              <Edit size={16} />
-            </button>
-          )}
-          
-          {/* Delete Button: Visible ONLY to Admin */}
-          {user.role === "Admin" && (
-            <button
-              onClick={() => handleDelete(p.product_id)} 
-              className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded transition-colors"
-              title="Delete Product"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
+  const data = products.map((p) => {
+    const isArchived = p.status === 'Inactive';
+    return {
+      id: p.product_id, 
+      Product: (
+        <div className={`flex items-center gap-2 ${isArchived ? "text-gray-400 italic" : "text-gray-900"}`}>
+            {isArchived && <Archive size={14} />}
+            {p.product_name}
         </div>
       ),
-  }));
+      Category: categoryMap[p.category_id] || 'N/A', 
+      "Cost Price": `₱${parseFloat(p.cost_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      Stock: (
+        <span className={
+            isArchived ? "text-gray-400" : 
+            p.quantity === 0 ? "text-red-500 font-bold" : "text-emerald-600 font-bold"
+        }>
+          {p.quantity}
+        </span>
+      ),
+      Status: (() => {
+          if (isArchived) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase border border-gray-200">Archived</span>;
+          if (p.quantity === 0) return <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span>;
+          return <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>;
+      })(),
+      Actions: (
+          <div className="flex gap-2">
+            {!isArchived && (user?.role === "Admin" || user?.role === "Staff") && (
+              <button onClick={() => handleEditClick(p)} className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-100 hover:bg-blue-50 rounded transition-colors" title="Edit Product">
+                <Edit size={16} />
+              </button>
+            )}
+            {isArchived && (user?.role === "Admin" || user?.role === "Staff") && (
+                <button onClick={() => handleRestore(p)} className="p-1.5 text-slate-500 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded transition-colors" title="Restore Product">
+                    <RotateCcw size={16} />
+                </button>
+            )}
+            {user?.role === "Admin" && (
+              <button onClick={() => handleDelete(p)} className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded transition-colors" title={isArchived ? "Permanently Delete" : "Delete or Archive"}>
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        ),
+    };
+  });
 
   const filterConfig = [
     {
@@ -336,7 +374,6 @@ export default function Inventory() {
         </div>
       );
     }
-    
     return <Table tableName="All Products Inventory" columns={columns} data={data} rowsPerPage={10} />;
   };
   
@@ -386,7 +423,7 @@ export default function Inventory() {
           <div className="flex flex-row justify-end items-center gap-4 shrink-0 mt-15 lg:mt-0">
             <Scanner key="main-scanner" onScan={handleScan} /> 
             
-            {(user.role === "Admin" || user.role === "Staff") && (
+            {(user?.role === "Admin" || user?.role === "Staff") && (
               <button
                 onClick={() => {
                   setFormData({ productName: "", category: "", sellingPrice: "0.00", costPrice: "0.00", initialStock: "0", reorderPoint: "10", barcode: "" });

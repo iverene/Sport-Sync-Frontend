@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"; 
 import Layout from "../components/Layout";
 import Scanner from "../components/Scanner";
-import Search from "../components/Search"; // Use the updated Search component
+import Search from "../components/Search"; 
 import CategoryButton from "../components/pos/CategoryButton.jsx";
 import Product from "../components/pos/Product.jsx";
 import CartModal from "../components/pos/CartModal";
@@ -22,9 +22,7 @@ export default function POS() {
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true); 
   
-
   const [searchQuery, setSearchQuery] = useState('');
-
   const [paymentMethod, setPaymentMethod] = useState("Cash");
 
   const paymentOptions = [
@@ -33,52 +31,45 @@ export default function POS() {
     { id: "Mobile", icon: Smartphone, label: "GCash" }, 
   ];
   
-
+  // --- DATA FETCHING ---
   const fetchProductsAndCategories = useCallback(async () => {
     setLoading(true);
     try {
         const [productsRes, categoriesRes] = await Promise.all([
-            // Use API search filter
             API.get('/products', { 
                 params: { 
                     limit: 1000,
-                    search: searchQuery, // Send search query to backend
+                    search: searchQuery, 
                     category_id: activeCategory === 'All' ? undefined : categories.find(c => c.category_name === activeCategory)?.category_id 
                 } 
             }),
             API.get('/categories')
         ]);
         
-        // Update categories if fetching globally for the first time
         if (categories.length === 0) {
             setCategories(categoriesRes.data.data);
         }
         
         setAllProducts(productsRes.data.data);
-
     } catch (error) {
         console.error("Failed to fetch POS data:", error.response?.data || error);
-        setToast({ message: "Failed to load products/categories.", type: "error" });
+        setToast({ message: "Failed to load products.", type: "error" });
         setAllProducts([]);
     } finally {
         setLoading(false);
     }
-  }, [searchQuery, activeCategory, categories.length]); 
+  }, [searchQuery, activeCategory, categories.length]);
 
   useEffect(() => {
     fetchProductsAndCategories();
   }, [fetchProductsAndCategories]); 
 
   useEffect(() => {
-    if (activeCategory === "All" && !searchQuery) {
-        setFiltered(allProducts);
-    } else {
-        setFiltered(allProducts);
-    }
-  }, [activeCategory, allProducts, searchQuery]);
+    setFiltered(allProducts);
+  }, [allProducts]);
 
 
-  // --- Cart Handlers ---
+  // --- CART LOGIC ---
   const addToCart = (product) => {
     if (product.quantity === 0) {
       setToast({ message: "Product is out of stock!", type: "error" });
@@ -104,20 +95,19 @@ export default function POS() {
   };
 
   // --- SCANNER HANDLER ---
-  const handleScanResult = (barcodeText) => {
-    // Immediate search in current list if available
-    let foundProduct = allProducts.find(p => p.barcode === barcodeText); 
+  const handleScanResult = useCallback((barcodeText) => {
+    const foundLocal = allProducts.find(p => p.barcode === barcodeText);
     
-    if (foundProduct) {
-        addToCart(foundProduct);
-        setToast({ message: `Added: ${foundProduct.product_name}`, type: "success" });
+    if (foundLocal) {
+        addToCart(foundLocal);
+        setToast({ message: `Added: ${foundLocal.product_name}`, type: "success" });
     } else {
         API.get(`/products/barcode/${barcodeText}`)
           .then(res => {
-            foundProduct = res.data.data;
-            if (foundProduct) {
-                addToCart(foundProduct);
-                setToast({ message: `Added: ${foundProduct.product_name}`, type: "success" });
+            const product = res.data.data;
+            if (product) {
+                addToCart(product);
+                setToast({ message: `Added: ${product.product_name}`, type: "success" });
             } else {
                 setToast({ message: `Product not found (Barcode: ${barcodeText})`, type: "error" });
             }
@@ -126,7 +116,7 @@ export default function POS() {
             setToast({ message: `Product not found (Barcode: ${barcodeText})`, type: "error" });
           });
     }
-  };
+  }, [allProducts]);
 
   const updateQuantity = (productId, delta) => {
     setCart((prev) =>
@@ -178,16 +168,13 @@ export default function POS() {
         
         setToast({ message: "Transaction completed successfully!", type: "success" });
         setCart([]);
-        // Re-fetch only products to update stock levels, keeping categories cached
         fetchProductsAndCategories(); 
 
     } catch (error) {
         const errorMessage = error.response?.data?.message || 'Transaction failed due to server error.';
-        console.error('Checkout error:', error.response?.data || error.message);
         setToast({ message: errorMessage, type: "error" });
     }
   };
-
 
   const totalAmount = cart.reduce(
     (acc, item) => acc + item.selling_price * item.quantity,
@@ -201,7 +188,7 @@ export default function POS() {
         {/* --- LEFT COLUMN: PRODUCTS --- */}
         <div className="flex-1 flex flex-col gap-4 h-full lg:max-w-240 overflow-hidden">
           
-          {/* Header & Search (NEW: Search triggers API fetch via setSearchQuery) */}
+          {/* Header & Search */}
           <div className="shrink-0 mt-5 lg:mt-0 w-full mb-4 relative z-10"> 
             <div className="flex items-center gap-3 w-full">
               <div className="flex-1">
@@ -218,7 +205,6 @@ export default function POS() {
             <CategoryButton
               categories={categories}
               active={activeCategory}
-              // When category changes, reset search query but trigger fetch
               onSelect={(category) => {
                 setActiveCategory(category);
                 setSearchQuery('');
@@ -268,14 +254,14 @@ export default function POS() {
           </div>
         </div>
 
-        {/* --- RIGHT COLUMN: CART --- */}
+        {/* --- RIGHT COLUMN: CART (Desktop Sidebar) --- */}
         <div className="
             fixed bottom-0 left-0 right-0 h-20 bg-softWhite border-t border-slate-200 p-4 
             shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 
-            z-10 
+            z-40 
             lg:shadow-none lg:static lg:h-full lg:w-[340px] lg:flex lg:flex-col lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-softWhite
         ">
-            {/* Mobile View Summary */}
+            {/* Mobile View Summary Bar */}
             <div className="flex lg:hidden justify-between items-center w-full">
                 <div className="flex flex-col">
                     <span className="text-xs text-slate-500">Total ({cart.length} items)</span>
@@ -283,7 +269,7 @@ export default function POS() {
                 </div>
                 <button 
                     onClick={() => setIsCartOpen(true)} 
-                    className="bg-navyBlue text-softWhite px-6 py-2 rounded-lg font-bold"
+                    className="bg-navyBlue text-softWhite px-6 py-2 rounded-lg font-bold shadow-md active:scale-95 transition-transform"
                 >
                     View Cart
                 </button>
@@ -316,7 +302,6 @@ export default function POS() {
                 </div>
 
                 <div className="p-5 bg-slate-50 border-t border-slate-200 mt-auto rounded-b-2xl">
-                    
                     <div className="mb-4">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2 block">
                         Payment Method
@@ -372,7 +357,6 @@ export default function POS() {
                 </div>
             </div>
         </div>
-
       </div>
 
       <div className="relative z-[9999]">
@@ -386,22 +370,22 @@ export default function POS() {
         )}
       </div>
 
+      {/* Cart Modal (For Mobile) */}
       <div className="relative z-[9999]">
-  <CartModal 
-      isOpen={isCartOpen}
-      onClose={() => setIsCartOpen(false)}
-      cart={cart}
-      onIncrease={(id) => updateQuantity(id, 1)}
-      onDecrease={(id) => updateQuantity(id, -1)}
-      onRemove={removeItem}
-      totalAmount={totalAmount}
-      
-
-      paymentMethod={paymentMethod}
-      setPaymentMethod={setPaymentMethod}
-      onCheckout={handleCheckout}
-  />
-</div>
+        <CartModal 
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cart={cart}
+            onIncrease={(id) => updateQuantity(id, 1)}
+            onDecrease={(id) => updateQuantity(id, -1)}
+            onRemove={removeItem}
+            totalAmount={totalAmount}
+            
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            onCheckout={handleCheckout}
+        />
+      </div>
     </Layout>
   );
 }
