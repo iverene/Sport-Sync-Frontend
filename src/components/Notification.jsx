@@ -9,7 +9,7 @@ export default function Notification() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
-  // Refs and State for Positioning
+  // Refs for positioning
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
@@ -17,13 +17,20 @@ export default function Notification() {
   const fetchNotifications = async () => {
     try {
       const response = await API.get('/notifications?limit=20');
-      setNotifications(response.data.data || []);
-      if (response.data.meta) {
-          setUnreadCount(response.data.meta.unreadCount);
-      } else {
-          const unread = (response.data.data || []).filter(n => n.status === 'Unread').length;
-          setUnreadCount(unread);
-      }
+      const allData = response.data.data || [];
+
+      // --- LOGIC: Filter out "Cleared" notifications ---
+      const lastCleared = localStorage.getItem('notification_cleared_timestamp');
+      
+      const visibleNotifications = lastCleared 
+        ? allData.filter(n => new Date(n.created_at) > new Date(lastCleared))
+        : allData;
+
+      setNotifications(visibleNotifications);
+
+      const visibleUnreadCount = visibleNotifications.filter(n => n.status === 'Unread').length;
+      setUnreadCount(visibleUnreadCount);
+
     } catch (error) {
       console.error("Fetch notifications error", error);
     } finally {
@@ -92,8 +99,11 @@ export default function Notification() {
     } catch (e) { console.error(e); }
   };
 
-  // --- Clear Display  ---
+  // --- UPDATED: Clear Display  ---
   const clearAllNotifications = () => {
+    localStorage.setItem('notification_cleared_timestamp', new Date().toISOString());
+    
+    // Clear local state immediately
     setNotifications([]);
     setUnreadCount(0);
   };
@@ -102,15 +112,15 @@ export default function Notification() {
   const getIcon = () => <Bell className="w-5 h-5 text-blue-500" />;
   const getBorderColor = () => 'border-l-blue-500';
 
-  // Dropdown Content (Rendered via Portal)
+  // Dropdown Content (Portal)
   const dropdownContent = isOpen ? (
     <div 
-        ref={dropdownRef} 
+        ref={dropdownRef}
         style={{
             position: 'fixed',
             top: `${coords.top}px`,
             right: `${coords.right}px`,
-            zIndex: 99999, 
+            zIndex: 99999,
         }}
         className="w-80 sm:w-96 bg-softWhite rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
     >
