@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Layout from "../components/Layout";
 import KpiCard from "../components/KpiCard";
-import AddUser from "../components/AddUser"; 
+import AddUser from "../components/users/AddUser"; 
+import EditUserModal from "../components/users/EditUserModal"; 
 import Table from "../components/Table";
 import Filter from "../components/Filter";
 import Toast from "../components/Toast";
@@ -12,7 +13,7 @@ export default function Users() {
   const [allUsers, setAllUsers] = useState([]);
   const [toast, setToast] = useState(null);
   
-  // State
+  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -20,7 +21,10 @@ export default function Users() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false); 
   
-  // Ref to hold the active request controller
+  // 2. Add State for Edit Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
   const abortControllerRef = useRef(null);
 
   const rolesConfig = {
@@ -30,12 +34,9 @@ export default function Users() {
   };
 
   const fetchData = useCallback(async () => {
-    // 1. Cancel previous request if it exists
     if (abortControllerRef.current) {
         abortControllerRef.current.abort();
     }
-
-    // 2. Create new controller for this request
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -52,14 +53,12 @@ export default function Users() {
         });
         setAllUsers(response.data.data || []);
     } catch (error) {
-        // Ignore cancellation errors
         if (error.name !== 'CanceledError' && error.code !== "ERR_CANCELED") {
             console.error("Failed to fetch users:", error.response?.data || error);
             setToast({ message: "Failed to load user data.", type: "error" });
             setAllUsers([]);
         }
     } finally {
-        // Only stop loading if this request wasn't cancelled
         if (abortControllerRef.current === controller) {
             setLoading(false);
             setIsInitialLoading(false);
@@ -67,14 +66,9 @@ export default function Users() {
     }
   }, [roleFilter, statusFilter, searchTerm]); 
 
-  // Trigger fetch when filters/search change
   useEffect(() => {
     fetchData();
-    return () => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-    };
+    return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
   }, [fetchData]);
 
   const handleUserDelete = async (userId) => {
@@ -89,6 +83,12 @@ export default function Users() {
     }
   };
 
+  // 3. Handle Edit Click
+  const handleEditClick = (user) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
   const totalUsers = allUsers.length;
   const activeUsers = allUsers.filter(u => u.status === 'Active').length;
   const administrators = allUsers.filter(u => u.role === 'Admin').length;
@@ -98,7 +98,15 @@ export default function Users() {
   const columns = [
     {
       header: "User", accessor: "full_name", render: (row) => (
-        <div className="flex items-center"><div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-navyBlue font-bold text-sm border border-slate-200">{row.full_name ? row.full_name.charAt(0).toUpperCase() : 'U'}</div><div className="ml-3"><div className="text-sm font-semibold text-slate-800">{row.full_name}</div><div className="text-xs text-slate-500">{row.email}</div></div></div>
+        <div className="flex items-center">
+          <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-navyBlue font-bold text-sm border border-slate-200">
+            {row.full_name ? row.full_name.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div className="ml-3">
+            <div className="text-sm font-semibold text-slate-800">{row.full_name}</div>
+            <div className="text-xs text-slate-500">{row.email}</div>
+          </div>
+        </div>
       ),
     },
     { header: "Role", accessor: "role", render: (row) => <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 capitalize border border-blue-100">{row.role}</span> },
@@ -107,7 +115,20 @@ export default function Users() {
     { header: "Last Login", accessor: "last_login", render: (row) => row.last_login ? new Date(row.last_login).toLocaleDateString() : 'Never' },
     {
       header: "Actions", accessor: "user_id", render: (row) => (
-        <div className="flex gap-2"><button className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-50 hover:bg-blue-50 rounded-md transition-colors"><Edit2 size={16} /></button><button onClick={() => handleUserDelete(row.user_id)} className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-md transition-colors"><UserX size={16} /></button></div>
+        <div className="flex gap-2">
+          {/* 4. Connect Edit Button */}
+          <button 
+            onClick={() => handleEditClick(row)}
+            className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-50 hover:bg-blue-50 rounded-md transition-colors"
+            title="Edit User"
+          >
+            <Edit2 size={16} />
+          </button>
+          
+          <button onClick={() => handleUserDelete(row.user_id)} className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-md transition-colors" title="Delete User">
+            <UserX size={16} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -129,7 +150,7 @@ export default function Users() {
 
         <Filter
           searchQuery={searchTerm}
-          onSearchChange={setSearchTerm} // Pass direct setter, Filter.jsx handles debounce
+          onSearchChange={setSearchTerm} 
           searchPlaceholder="Search users by name or email..."
           filters={[
             { value: roleFilter, onChange: (e) => setRoleFilter(e.target.value), options: [{ value: "all", label: "All Roles" }, { value: "Admin", label: "Admin" }, { value: "Staff", label: "Staff" }, { value: "Cashier", label: "Cashier" }] },
@@ -149,6 +170,7 @@ export default function Users() {
             <Table columns={columns} data={allUsers} rowsPerPage={5} />
         )}
 
+        {/* Role Legend */}
         <div className="bg-white rounded-xl shadow-sm p-8">
             <h2 className="title mb-5">Role Permissions</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -161,6 +183,16 @@ export default function Users() {
             </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <EditUserModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+        user={selectedUser} 
+        onUserUpdated={fetchData}
+        setToast={setToast}
+      />
+
       {toast && <div className="fixed z-[9999] top-5 right-5"><Toast message={toast.message} type={toast.type} duration={3000} onClose={() => setToast(null)}/></div>}
     </Layout>
   );

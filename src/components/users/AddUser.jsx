@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X, Users, Loader2 } from 'lucide-react';
-import API from '../services/api';
+import API from '../../services/api';
 
 export default function UserManagementHeader({ onUserAdded, setToast }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
