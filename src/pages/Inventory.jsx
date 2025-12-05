@@ -13,7 +13,7 @@ import {
   Package,
   AlertTriangle,
   TrendingDown,
-  DollarSign,
+  AlertOctagon, // Ensure this import is present
   Trash2,
   Edit,
   PlusCircle,
@@ -48,7 +48,7 @@ export default function Inventory() {
   const [categories, setCategories] = useState([]);
   const [inventoryKpis, setInventoryKpis] = useState(null);
   
-  // ✅ FIX #1: Add state for global settings
+  // FIX #1: Add state for global settings with defaults
   const [globalSettings, setGlobalSettings] = useState({
     stock_threshold_low: 20,
     stock_threshold_critical: 10
@@ -79,7 +79,7 @@ export default function Inventory() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockLevel, setSelectedStockLevel] = useState("all");
   
-  // ✅ FIX #1: Fetch global settings on mount
+  // FIX #1: Fetch global settings on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -124,70 +124,40 @@ export default function Inventory() {
       const prodResponse = await API.get('/products', { params: fetchParams });
       const fetchedProducts = prodResponse.data.data || []; 
       
-      // ✅ FIX #1: Use global settings for stock level filtering
+      // FIX #2: Correct Logic for Stock Level Filtering
       let finalProducts = fetchedProducts;
       
+      const criticalThreshold = globalSettings.stock_threshold_critical;
+      const lowThreshold = globalSettings.stock_threshold_low;
+
       if (selectedStockLevel !== 'all') {
         finalProducts = finalProducts.filter(p => {
             switch(selectedStockLevel) {
                 case 'out-of-stock': 
                     return p.quantity === 0;
-                case 'low-stock': 
-                    // Use global critical threshold & low threshold for low-stock definition
-                    return p.quantity <= globalSettings.stock_threshold_low;
                 case 'critical':
-                    return p.quantity > globalSettings.stock_threshold_critical;
+                    return p.quantity > 0 && p.quantity <= criticalThreshold;
+                case 'low-stock': 
+                    return p.quantity > criticalThreshold && p.quantity <= lowThreshold;
                 case 'in-stock': 
-                    return p.quantity > globalSettings.stock_threshold_low;
+                    return p.quantity > lowThreshold;
                 default: 
                     return true;
             }
         });
-        
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('🔍 FILTER ANALYSIS');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('📋 Filter Selected:', selectedStockLevel);
-        console.log('🎯 Critical Threshold:', globalSettings.stock_threshold_critical);
-        console.log('🎯 Low Threshold:', globalSettings.stock_threshold_low);
-        console.log('📦 Total Products Fetched:', fetchedProducts.length);
-        console.log('✅ Products After Filter:', finalProducts.length);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        if (selectedStockLevel === 'low-stock') {
-          console.log('🔍 Low Stock Products Details:');
-          finalProducts.forEach(p => {
-            console.log(`  - ${p.product_name}: qty=${p.quantity} (critical=${globalSettings.stock_threshold_critical}, low=${globalSettings.stock_threshold_low})`);
-          });
-        }
       }
       
       setProducts(finalProducts);
       
-      // ✅ FIX #3: Only show alert if products_requiring_attention exists and has items
-      const lowStockProducts = fetchedReport.products_requiring_attention;
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('🔍 LOW STOCK DATA ANALYSIS');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📊 Fetched Report Summary:', fetchedReport.summary);
-      console.log('📦 Low Stock Products from API:', lowStockProducts);
-      console.log('🎯 Global Settings:', globalSettings);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('✅ KPI Low Stock Count:', fetchedReport.summary?.low_stock_count);
-      console.log('✅ KPI Critical Stock Count:', fetchedReport.summary?.critical_stock_count);
-      console.log('✅ Alert Products Count:', lowStockProducts?.length);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      // FIX #3: Logic to trigger Alert Modal
+      // We calculate the alert list locally to ensure it includes Out of Stock items
+      const hasIssues = fetchedProducts.some(p => 
+        p.status === 'Active' && p.quantity <= lowThreshold
+      );
       
-      if (lowStockProducts && lowStockProducts.length > 0 && !hasAlertBeenShown) {
-        console.log('✅ Showing Alert Modal with', lowStockProducts.length, 'items');
+      if (hasIssues && !hasAlertBeenShown) {
         setIsAlertOpen(true);
         setHasAlertBeenShown(true);
-      } else {
-        console.log('❌ Alert NOT shown - Reason:', 
-          !lowStockProducts ? 'No lowStockProducts' : 
-          lowStockProducts.length === 0 ? 'Empty array' : 
-          'Alert already shown'
-        );
       }
 
     } catch (error) {
@@ -280,7 +250,6 @@ export default function Inventory() {
     const oldProduct = products.find(p => p.product_id === productId); 
 
     try {
-        // Accept both reorder_level and reorder_point coming from different frontends/modals
         const reorderLevelRaw = updatedProduct.reorder_level ?? updatedProduct.reorder_point ?? updatedProduct.reorderPoint ?? updatedProduct.reorderLevel;
         const productDetailsPayload = {
             product_name: updatedProduct.product_name, 
@@ -343,21 +312,51 @@ export default function Inventory() {
 
   const categoryMap = getCategoryMap(categories); 
 
-  // ✅ FIX #3: Only use products_requiring_attention, remove fallback to all products
-  const lowStockList = (inventoryKpis?.products_requiring_attention || []).map((p) => ({
-    name: p.product_name,
-    sku: p.barcode,
-    current: p.quantity,
-    minimum: p.reorder_level || 20, 
-    unit: "units",
-  }));
+  // ✅ GENERATE COMPREHENSIVE ALERT LIST
+  // This derives the list from all loaded products to ensure we capture Out of Stock items
+  // (The API's 'products_requiring_attention' sometimes excludes 0 quantity items depending on backend logic)
+  const alertList = products
+    .filter(p => p.status === 'Active' && p.quantity <= globalSettings.stock_threshold_low)
+    .map(p => {
+        let status = 'low';
+        if (p.quantity === 0) status = 'out_of_stock';
+        else if (p.quantity <= globalSettings.stock_threshold_critical) status = 'critical';
 
-  // ✅ DEBUG: Log the final list being passed to AlertModal
-  console.log('🔍 DEBUG - lowStockList for AlertModal:', lowStockList);
-  console.log('🔍 DEBUG - isAlertOpen:', isAlertOpen);
+        return {
+            name: p.product_name,
+            sku: p.barcode,
+            current: p.quantity,
+            minimum: p.reorder_level, // Keep original reorder level for reference
+            status: status,
+            unit: "units",
+        };
+    })
+    .sort((a, b) => {
+        // Sort Priority: Out of Stock > Critical > Low
+        const priority = { out_of_stock: 0, critical: 1, low: 2 };
+        return priority[a.status] - priority[b.status];
+    });
 
   const data = products.map((p) => {
     const isArchived = p.status === 'Inactive';
+    
+    // Determine Status Logic (Must match the Filter Logic)
+    let statusBadge;
+    const criticalThreshold = globalSettings.stock_threshold_critical;
+    const lowThreshold = globalSettings.stock_threshold_low;
+
+    if (isArchived) {
+        statusBadge = <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase border border-gray-200">Archived</span>;
+    } else if (p.quantity === 0) {
+        statusBadge = <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span>;
+    } else if (p.quantity > 0 && p.quantity <= criticalThreshold) {
+        statusBadge = <span className="bg-red-50 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase border border-red-200">Critical</span>;
+    } else if (p.quantity > criticalThreshold && p.quantity <= lowThreshold) {
+        statusBadge = <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold uppercase">Low Stock</span>;
+    } else {
+        statusBadge = <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>;
+    }
+
     return {
       id: p.product_id, 
       Product: (
@@ -377,22 +376,7 @@ export default function Inventory() {
           {p.quantity}
         </span>
       ),
-      Status: (() => {
-          if (isArchived) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase border border-gray-200">Archived</span>;
-          if (p.quantity === 0) return <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span>;
-
-          // 1) Critical (<= criticalThreshold)
-          if (p.quantity > 0 && p.quantity <= globalSettings.stock_threshold_critical) {
-            return <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Critical</span>;
-          }
-
-          // 2) Low (> criticalThreshold && <= lowThreshold)
-          if (p.quantity > globalSettings.stock_threshold_critical && p.quantity <= globalSettings.stock_threshold_low) {
-            return <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold uppercase">Low Stock</span>;
-          }
-
-          return <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>;
-      })(),
+      Status: statusBadge,
       Actions: (
           <div className="flex gap-2">
             {!isArchived && (user?.role === "Admin" || user?.role === "Staff") && (
@@ -439,24 +423,6 @@ export default function Inventory() {
     },
   ];
 
-  const renderTableContent = () => {
-    if (isInitialLoading) {
-      return (
-        <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-100 bg-white">
-            <h3 className="text-navyBlue font-bold text-lg tracking-tight">All Products Inventory</h3>
-          </div>
-          <div className="flex flex-col items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 animate-spin text-navyBlue" />
-            <p className="text-slate-500 mt-3 text-sm">Updating list...</p>
-          </div>
-        </div>
-      );
-    }
-    
-    return <Table tableName="All Products Inventory" columns={columns} data={data} rowsPerPage={10} />;
-  };
-  
   const renderMainContent = () => {
       if (isInitialLoading) {
           return (
@@ -470,10 +436,10 @@ export default function Inventory() {
       return (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard bgColor="#002B50" title="Total Products" icon={<Package />} value={products.length} />
-              <KpiCard bgColor="#F39C12" title="Low Stock" icon={<AlertTriangle />} value={inventoryKpis?.low_stock_count || 0} />
-              <KpiCard bgColor="#E74C3C" title="Out of Stock" icon={<TrendingDown />} value={inventoryKpis?.out_of_stock_count || 0} />
-              <KpiCard bgColor="#1f781a" title="Inventory Value" icon={<DollarSign />} value={`₱${(inventoryKpis?.total_inventory_value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+              <KpiCard bgColor="#002B50" title="Total Products" icon={<Package />} value={inventoryKpis?.total_products || 0} />
+              <KpiCard bgColor="#F39C12" title="Low Stock" icon={<TrendingDown />} value={inventoryKpis?.low_stock_count || 0} />
+              <KpiCard bgColor="#D32F2F" title="Critical Stock" icon={<AlertOctagon />} value={inventoryKpis?.critical_stock_count || 0} />
+              <KpiCard bgColor="#E74C3C" title="Out of Stock" icon={<AlertTriangle />} value={inventoryKpis?.out_of_stock_count || 0} />
             </div>
     
             <Filter
@@ -722,7 +688,7 @@ export default function Inventory() {
 
       {isAlertOpen && (
         <AlertModal
-          lowStockItems={lowStockList}
+          lowStockItems={alertList}
           onClose={() => setIsAlertOpen(false)}
         />
       )}
