@@ -14,15 +14,17 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
   const [adjustType, setAdjustType] = useState("add");
   const [adjustQty, setAdjustQty] = useState(0);
 
-  // Populate modal when product is opened
+  // ✅ FIX #2: Populate modal when product is opened
   useEffect(() => {
     if (product && isOpen) {
       setFormData({
         productName: product.product_name || "",
-        categoryId: Number(product.category_id) || "",
+        // ✅ FIX #2: Ensure category_id is properly set as number
+        categoryId: product.category_id ? Number(product.category_id) : "",
         sellingPrice: product.selling_price || "",
         costPrice: product.cost_price || "",
-        reorderPoint: product.reorder_point ?? "", // handles undefined
+        // ✅ FIX #2: Use reorder_level (not reorderPoint)
+        reorderPoint: product.reorder_level ?? "",
       });
 
       setCurrentStock(product.quantity || 0);
@@ -56,7 +58,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
       category_id: Number(formData.categoryId),
       selling_price: parseFloat(formData.sellingPrice),
       cost_price: parseFloat(formData.costPrice),
-      reorder_point: parseInt(formData.reorderPoint),
+      reorder_level: parseInt(formData.reorderPoint),
       quantity: resultingStock,
     };
 
@@ -120,8 +122,9 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-navyBlue"
               >
                 <option value="">Select category</option>
+                {/* ✅ FIX #2: Use category_id instead of id */}
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
+                  <option key={cat.category_id} value={cat.category_id}>
                     {cat.category_name}
                   </option>
                 ))}
@@ -181,6 +184,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
               {/* Toggle Type */}
               <div className="flex bg-white rounded-lg p-1 border border-gray-300 shadow-sm">
                 <button
+                  type="button"
                   onClick={() => setAdjustType("add")}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                     adjustType === "add"
@@ -192,6 +196,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setAdjustType("remove")}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                     adjustType === "remove"
@@ -240,6 +245,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg">
           <button
+            type="button"
             onClick={handleSubmit}
             className="w-full flex items-center justify-center gap-2 bg-navyBlue text-white py-3 rounded-lg font-medium hover:bg-[#1f781a] transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
           >

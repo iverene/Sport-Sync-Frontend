@@ -15,6 +15,7 @@ export default function TransactionHistory() {
 
   const [startDate, setStartDate] = useState(format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dateRangeLabel, setDateRangeLabel] = useState('Last 30 Days');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -40,29 +41,35 @@ export default function TransactionHistory() {
   }, [fetchData]);
 
   const handleDateFilterChange = (filterType, date) => {
-    let start, end;
+    let start, end, label;
     
     switch (filterType) {
         case "Weekly":
             start = startOfWeek(date, { weekStartsOn: 1 });
             end = endOfWeek(date, { weekStartsOn: 1 });
+            label = `Week of ${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
             break;
         case "Monthly":
             start = startOfMonth(date);
             end = endOfMonth(date);
+            label = format(date, 'MMMM yyyy');
             break;
         case "Yearly":
             start = startOfYear(date);
             end = endOfYear(date);
+            label = format(date, 'yyyy');
             break;
         case "Daily":
         default:
             start = date;
             end = date;
+            label = format(date, 'MMM dd, yyyy');
             break;
     }
+    
     setStartDate(format(start, 'yyyy-MM-dd'));
     setEndDate(format(end, 'yyyy-MM-dd'));
+    setDateRangeLabel(label);
   };
   
   // FIX: Normalize payment method display
@@ -87,8 +94,8 @@ export default function TransactionHistory() {
   
   const paymentColors = {
     Cash: "bg-green-100 text-green-700",
-    Card: "bg-yellow-100 text-yellow-700",
-    GCash: "bg-blue-100 text-blue-700",
+    Card: "bg-blue-100 text-blue-700",
+    GCash: "bg-yellow-100 text-yellow-700",
     Mobile: "bg-yellow-100 text-yellow-700",
   };
 
@@ -168,9 +175,27 @@ export default function TransactionHistory() {
 
   return (
     <div className="flex flex-col space-y-6">
-      <div className="flex gap-5 justify-end">
-        <CalendarFilter onChange={handleDateFilterChange}/>
-        <div>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        {/* Date Range Label */}
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-slate-800">Transaction History</h2>
+          <span className="px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg border border-blue-200">
+            {dateRangeLabel}
+          </span>
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          <button 
+            onClick={fetchData} 
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-navyBlue hover:bg-navyBlue/90 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors shadow-sm"
+          >
+            <Eye size={16} className={loading ? 'animate-pulse' : ''} /> 
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+          
+          <CalendarFilter onChange={handleDateFilterChange}/>
+          
           <ExportButton
              data={exportData}       
              columns={exportColumns} 
@@ -182,7 +207,7 @@ export default function TransactionHistory() {
       
       {tableData.length > 0 ? (
           <Table
-            tableName={`Transaction History (${startDate} to ${endDate})`}
+            tableName={`${transactions.length} Transaction${transactions.length !== 1 ? 's' : ''} Found`}
             columns={tableColumns}
             data={tableData}
             rowsPerPage={10}

@@ -48,6 +48,12 @@ export default function Inventory() {
   const [categories, setCategories] = useState([]);
   const [inventoryKpis, setInventoryKpis] = useState(null);
   
+  // ✅ FIX #1: Add state for global settings
+  const [globalSettings, setGlobalSettings] = useState({
+    stock_threshold_low: 20,
+    stock_threshold_critical: 10
+  });
+  
   const [isFetching, setIsFetching] = useState(true); 
   const [isInitialLoading, setIsInitialLoading] = useState(true); 
 
@@ -72,6 +78,24 @@ export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockLevel, setSelectedStockLevel] = useState("all");
+  
+  // ✅ FIX #1: Fetch global settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await API.get('/settings');
+        const settings = response.data.data || {};
+        setGlobalSettings({
+          stock_threshold_low: parseInt(settings.stock_threshold_low) || 20,
+          stock_threshold_critical: parseInt(settings.stock_threshold_critical) || 10
+        });
+      } catch (error) {
+        console.error("Failed to fetch global settings:", error);
+      }
+    };
+    
+    fetchSettings();
+  }, []);
   
   // FETCH DATA FUNCTION
   const fetchData = useCallback(async () => {
@@ -100,28 +124,70 @@ export default function Inventory() {
       const prodResponse = await API.get('/products', { params: fetchParams });
       const fetchedProducts = prodResponse.data.data || []; 
       
-      // Manually filter based on local stock level filter 
+      // ✅ FIX #1: Use global settings for stock level filtering
       let finalProducts = fetchedProducts;
       
       if (selectedStockLevel !== 'all') {
         finalProducts = finalProducts.filter(p => {
-            const reorderLevel = p.reorder_level || 5; 
             switch(selectedStockLevel) {
-                case 'out-of-stock': return p.quantity === 0;
-                case 'low-stock': return p.quantity > 0 && p.quantity <= reorderLevel;
-                case 'in-stock': return p.quantity > reorderLevel;
-                default: return true;
+                case 'out-of-stock': 
+                    return p.quantity === 0;
+                case 'low-stock': 
+                    // Use global critical threshold & low threshold for low-stock definition
+                    return p.quantity <= globalSettings.stock_threshold_low;
+                case 'critical':
+                    return p.quantity > globalSettings.stock_threshold_critical;
+                case 'in-stock': 
+                    return p.quantity > globalSettings.stock_threshold_low;
+                default: 
+                    return true;
             }
         });
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🔍 FILTER ANALYSIS');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📋 Filter Selected:', selectedStockLevel);
+        console.log('🎯 Critical Threshold:', globalSettings.stock_threshold_critical);
+        console.log('🎯 Low Threshold:', globalSettings.stock_threshold_low);
+        console.log('📦 Total Products Fetched:', fetchedProducts.length);
+        console.log('✅ Products After Filter:', finalProducts.length);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
+        if (selectedStockLevel === 'low-stock') {
+          console.log('🔍 Low Stock Products Details:');
+          finalProducts.forEach(p => {
+            console.log(`  - ${p.product_name}: qty=${p.quantity} (critical=${globalSettings.stock_threshold_critical}, low=${globalSettings.stock_threshold_low})`);
+          });
+        }
       }
       
       setProducts(finalProducts);
       
-      // Show Alert Modal if low stock exists
+      // ✅ FIX #3: Only show alert if products_requiring_attention exists and has items
       const lowStockProducts = fetchedReport.products_requiring_attention;
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔍 LOW STOCK DATA ANALYSIS');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📊 Fetched Report Summary:', fetchedReport.summary);
+      console.log('📦 Low Stock Products from API:', lowStockProducts);
+      console.log('🎯 Global Settings:', globalSettings);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('✅ KPI Low Stock Count:', fetchedReport.summary?.low_stock_count);
+      console.log('✅ KPI Critical Stock Count:', fetchedReport.summary?.critical_stock_count);
+      console.log('✅ Alert Products Count:', lowStockProducts?.length);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
       if (lowStockProducts && lowStockProducts.length > 0 && !hasAlertBeenShown) {
+        console.log('✅ Showing Alert Modal with', lowStockProducts.length, 'items');
         setIsAlertOpen(true);
         setHasAlertBeenShown(true);
+      } else {
+        console.log('❌ Alert NOT shown - Reason:', 
+          !lowStockProducts ? 'No lowStockProducts' : 
+          lowStockProducts.length === 0 ? 'Empty array' : 
+          'Alert already shown'
+        );
       }
 
     } catch (error) {
@@ -133,7 +199,7 @@ export default function Inventory() {
       setIsFetching(false);
       setIsInitialLoading(false);
     }
-  }, [searchQuery, selectedCategory, selectedStockLevel, hasAlertBeenShown, categories.length]); 
+  }, [searchQuery, selectedCategory, selectedStockLevel, hasAlertBeenShown, categories.length, globalSettings]); 
   
   useEffect(() => {
     fetchData();
@@ -214,12 +280,14 @@ export default function Inventory() {
     const oldProduct = products.find(p => p.product_id === productId); 
 
     try {
+        // Accept both reorder_level and reorder_point coming from different frontends/modals
+        const reorderLevelRaw = updatedProduct.reorder_level ?? updatedProduct.reorder_point ?? updatedProduct.reorderPoint ?? updatedProduct.reorderLevel;
         const productDetailsPayload = {
             product_name: updatedProduct.product_name, 
-            category_id: parseInt(updatedProduct.category_id), 
+            category_id: parseInt(updatedProduct.category_id),
             selling_price: parseFloat(updatedProduct.selling_price),
             cost_price: parseFloat(updatedProduct.cost_price),
-            reorder_level: parseInt(updatedProduct.reorder_level), 
+            reorder_level: parseInt(reorderLevelRaw || 0), 
         };
         
         await API.put(`/products/${productId}`, productDetailsPayload);
@@ -275,14 +343,18 @@ export default function Inventory() {
 
   const categoryMap = getCategoryMap(categories); 
 
-
-  const lowStockList = ((inventoryKpis && inventoryKpis.products_requiring_attention) || products || []).map((p) => ({
+  // ✅ FIX #3: Only use products_requiring_attention, remove fallback to all products
+  const lowStockList = (inventoryKpis?.products_requiring_attention || []).map((p) => ({
     name: p.product_name,
     sku: p.barcode,
     current: p.quantity,
-    minimum: p.reorder_level || 5, 
+    minimum: p.reorder_level || 20, 
     unit: "units",
   }));
+
+  // ✅ DEBUG: Log the final list being passed to AlertModal
+  console.log('🔍 DEBUG - lowStockList for AlertModal:', lowStockList);
+  console.log('🔍 DEBUG - isAlertOpen:', isAlertOpen);
 
   const data = products.map((p) => {
     const isArchived = p.status === 'Inactive';
@@ -295,8 +367,8 @@ export default function Inventory() {
         </div>
       ),
       Category: categoryMap[p.category_id] || 'N/A', 
-      "Cost Price": `₱${parseFloat(p.cost_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
-      "Selling Price": `₱${parseFloat(p.selling_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      "Cost Price": `₱${parseFloat(p.cost_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      "Selling Price": `₱${parseFloat(p.selling_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
       Stock: (
         <span className={
             isArchived ? "text-gray-400" : 
@@ -308,6 +380,17 @@ export default function Inventory() {
       Status: (() => {
           if (isArchived) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase border border-gray-200">Archived</span>;
           if (p.quantity === 0) return <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span>;
+
+          // 1) Critical (<= criticalThreshold)
+          if (p.quantity > 0 && p.quantity <= globalSettings.stock_threshold_critical) {
+            return <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Critical</span>;
+          }
+
+          // 2) Low (> criticalThreshold && <= lowThreshold)
+          if (p.quantity > globalSettings.stock_threshold_critical && p.quantity <= globalSettings.stock_threshold_low) {
+            return <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold uppercase">Low Stock</span>;
+          }
+
           return <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>;
       })(),
       Actions: (
@@ -350,13 +433,13 @@ export default function Inventory() {
         { value: "all", label: "All Stock Levels" },
         { value: "in-stock", label: "In Stock" },
         { value: "low-stock", label: "Low Stock" },
+        { value: "critical", label: "Critical Stock" },
         { value: "out-of-stock", label: "Out of Stock" },
       ],
     },
   ];
 
   const renderTableContent = () => {
-    // Only show loader on INITIAL load
     if (isInitialLoading) {
       return (
         <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -387,7 +470,7 @@ export default function Inventory() {
       return (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard bgColor="#002B50" title="Total Products" icon={<Package />} value={inventoryKpis?.total_products || 0} />
+              <KpiCard bgColor="#002B50" title="Total Products" icon={<Package />} value={products.length} />
               <KpiCard bgColor="#F39C12" title="Low Stock" icon={<AlertTriangle />} value={inventoryKpis?.low_stock_count || 0} />
               <KpiCard bgColor="#E74C3C" title="Out of Stock" icon={<TrendingDown />} value={inventoryKpis?.out_of_stock_count || 0} />
               <KpiCard bgColor="#1f781a" title="Inventory Value" icon={<DollarSign />} value={`₱${(inventoryKpis?.total_inventory_value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
@@ -626,7 +709,6 @@ export default function Inventory() {
         </div>
       )}
 
-      {/* RENDER TOAST HERE */}
       {toast && (
         <div className="relative z-[9999]">
             <Toast

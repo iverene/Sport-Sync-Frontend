@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import KpiCard from "../../components/KpiCard";
 import Table from "../../components/Table";
 import ExportButton from "../../components/ExportButton";
-import { DollarSign, Box, Boxes, AlertTriangle, Loader2 } from "lucide-react";
-import CalendarFilter from "../../components/CalendarFilter";
+import { DollarSign, Box, Boxes, AlertTriangle, Loader2, RefreshCw, Filter } from "lucide-react";
 import API from '../../services/api';
 
 const columns = [
@@ -23,12 +22,15 @@ const stockColumns = [
 
 export default function InventoryReport() {
     const [reportData, setReportData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const reportRef = useRef(null); 
+
+    // REMOVED: Date/Calendar State (ActiveFilter, ActiveDate, DateRange)
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            // REMOVED: Date params. We just want the CURRENT state.
             const response = await API.get('/reports/inventory');
             setReportData(response.data.data);
         } catch (error) {
@@ -43,18 +45,19 @@ export default function InventoryReport() {
         fetchData();
     }, [fetchData]);
 
-    if (loading || !reportData || !reportData.summary || !reportData.inventory_by_category) {
+    if (loading && !reportData) {
         return (
             <div className="default-container flex flex-col items-center justify-center h-96">
                 <Loader2 className="w-8 h-8 animate-spin text-navyBlue mb-4" />
-                <p className="text-slate-500">Generating Inventory Report...</p>
+                <p className="text-slate-500">Loading Current Inventory...</p>
             </div>
         );
     }
     
-    const { summary, inventory_by_category, products_requiring_attention } = reportData;
+    const safeData = reportData || { summary: {}, inventory_by_category: [], products_requiring_attention: [] };
+    const { summary, inventory_by_category, products_requiring_attention } = safeData;
 
-    // Data for Table 1 (Inventory by Category)
+    // ... (Data mapping logic remains the same) ...
     const categoryData = (inventory_by_category || []).map(cat => ({
         Category: cat.category_name,
         Products: cat.product_count,
@@ -63,8 +66,6 @@ export default function InventoryReport() {
         "Low Stock Counts": cat.low_stock_count
     }));
 
-    // Data for Table 2 (Products Requiring Attention)
-    // Now handles both Low Stock AND Out of Stock properly
     const attentionProducts = (products_requiring_attention || []).map(p => ({
         Product: p.product_name,
         "Current Stock": p.quantity,
@@ -74,19 +75,14 @@ export default function InventoryReport() {
             : <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap border border-amber-200">Low Stock</span>,
     }));
 
-    // KPI Stats
-    const totalProducts = parseInt(summary.total_products || 0);
-    const lowStockCount = parseInt(summary.low_stock_count || 0);
-    const outOfStockCount = parseInt(summary.out_of_stock_count || 0);
-    const inStockCount = totalProducts - lowStockCount - outOfStockCount;
+    // Stats Logic
+    const totalProducts = parseInt(summary?.total_products || 0);
+    const lowStockCount = parseInt(summary?.low_stock_count || 0);
+    const outOfStockCount = parseInt(summary?.out_of_stock_count || 0);
+    // Calculation: Total products usually includes out of stock, so inStock = Total - OutOfStock
+    // (Note: Check if your API 'total_products' includes inactive items)
+    const inStockCount = totalProducts - outOfStockCount; 
 
-    const stats = [
-        { label: "In Stock", value: inStockCount, bgClass: "bg-vibrantGreen" },
-        { label: "Low Stock", value: lowStockCount, bgClass: "bg-amberOrange" },
-        { label: "Out of Stock", value: outOfStockCount, bgClass: "bg-crimsonRed" },
-    ];
-    
-    // Clean Export Data
     const exportData = categoryData.map(item => ({
         Category: item.Category,
         Products: item.Products,
@@ -95,72 +91,59 @@ export default function InventoryReport() {
         "Low Stock Counts": item["Low Stock Counts"]
     }));
 
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
     return (
         <div className="flex flex-col space-y-5" ref={reportRef}>
-            <div className="flex gap-5 justify-end">
-                <CalendarFilter />
-                <div>
+            
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                 <div className="flex flex-col">
+                    <h2 className="text-xl font-bold text-navyBlue">Current Inventory Status</h2>
+                    <p className="text-sm text-slate-500">As of {currentDate}</p>
+                 </div>
+
+                <div className="flex gap-3 justify-end items-center">
+                    <button onClick={fetchData} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-all">
+                        {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} 
+                        <span className="hidden sm:inline">Refresh</span>
+                    </button>
+                    
+                    {/* Replaced CalendarFilter with just the Export Button */}
                     <ExportButton
                         data={exportData}
                         columns={columns}
-                        fileName={`Inventory_Summary_Report_${new Date().toISOString().split('T')[0]}`}
-                        title="Inventory Summary Report"
+                        fileName={`Inventory_Snapshot_${new Date().toISOString().split('T')[0]}`}
+                        title={`Inventory Snapshot - ${currentDate}`}
                         domElementRef={reportRef} 
                     />
                 </div>
             </div>
 
+            {/* KPI Cards (Same as before) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <KpiCard
-                    bgColor="#002B50"
-                    title="Total Products"
-                    icon={<Boxes />}
-                    value={totalProducts}
-                />
-                <KpiCard
-                    bgColor="#002B50"
-                    title="Total Inventory Value (Cost)"
-                    icon={<DollarSign />}
-                    value={`₱${parseFloat(summary.total_inventory_value || 0).toLocaleString('en-PH', {minimumFractionDigits: 2})}`}
-                />
-                <KpiCard
-                    bgColor="#F39C12"
-                    title="Low Stock"
-                    icon={<AlertTriangle />}
-                    value={lowStockCount}
-                />
-                <KpiCard
-                    bgColor="#E74C3C"
-                    title="Out of Stock"
-                    icon={<Box />}
-                    value={outOfStockCount}
-                />
+                <KpiCard bgColor="#002B50" title="Total Products" icon={<Boxes />} value={totalProducts} />
+                <KpiCard bgColor="#002B50" title="Total Value" icon={<DollarSign />} value={`₱${parseFloat(summary?.total_inventory_value || 0).toLocaleString('en-PH', {minimumFractionDigits: 2})}`} />
+                <KpiCard bgColor="#F39C12" title="Low Stock" icon={<AlertTriangle />} value={lowStockCount} />
+                <KpiCard bgColor="#E74C3C" title="Out of Stock" icon={<Box />} value={outOfStockCount} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <Table tableName="Inventory by Category" columns={columns} data={categoryData} rowsPerPage={10} />
                 
-                <div className="default-container p-6">
-                    <h3 className="title mb-3">Stock Status Overview</h3>
-                    <div className="space-y-5">
-                        {stats.map(stat => (
-                            <div key={stat.label} className="default-container rounded-lg py-2 px-4 flex justify-between items-center">
-                                <span className="font-medium text-gray-700">{stat.label}</span>
-                                <span className={`font-semibold text-softWhite text-base w-6 h-6 p-1 rounded flex items-center justify-center ${stat.bgClass}`}>
-                                    {stat.value}
-                                </span>
-                            </div>
-                        ))}
+                <div className="flex flex-col gap-6">
+                    {/* Simple Status Legend */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-500 uppercase">Stock Health</span>
+                        <div className="flex gap-4">
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span><span className="text-sm text-slate-600">In Stock: <b>{inStockCount}</b></span></div>
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500"></span><span className="text-sm text-slate-600">Low: <b>{lowStockCount}</b></span></div>
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-600"></span><span className="text-sm text-slate-600">Empty: <b>{outOfStockCount}</b></span></div>
+                        </div>
                     </div>
-                </div>
 
-                <div className="col-span-2">
-                    <Table 
-                        tableName="Products Requiring Attention (Low/Out of Stock)" 
-                        columns={stockColumns} 
-                        data={attentionProducts} 
-                        rowsPerPage={10}
-                    />
+                    <div className="flex-grow">
+                        <Table tableName="Attention Required" columns={stockColumns} data={attentionProducts} rowsPerPage={10} />
+                    </div>
                 </div>
             </div>
         </div>

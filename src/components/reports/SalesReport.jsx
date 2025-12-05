@@ -5,7 +5,7 @@ import Chart from "../../components/Chart";
 import Table from "../../components/Table";
 import { DollarSign, ShoppingCart, Activity, Star, Loader2, ArrowUp, RefreshCw } from "lucide-react";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from "date-fns";
-import CalendarFilter from "../../components/CalendarFilter";
+import CalendarFilter from "../../components/CalendarFilter"; 
 import API from '../../services/api';
 
 const displayColumns = [
@@ -19,9 +19,7 @@ const displayColumns = [
 
 const formatSalesTableData = (rawProducts) => {
     return rawProducts.map((p) => {
-        // Use margin_percent directly from the API (already calculated correctly)
         const margin = parseFloat(p.margin_percent || 0);
-
         return {
             Product: p.product_name,
             Category: p.category_name,
@@ -47,45 +45,23 @@ export default function SalesReport() {
   const [categoryFilter, setCategoryFilter] = useState("revenue");
   const reportRef = useRef(null); 
   
-  // FIX: Set default date range to include today properly
-  const [startDate, setStartDate] = useState(format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  // STATE MANAGEMENT FIX: Control the filter and date from the parent
+  const [activeFilter, setActiveFilter] = useState("Daily");
+  const [activeDate, setActiveDate] = useState(new Date());
+
+  // Derived state for API calls
+  const [dateRange, setDateRange] = useState({
+      start: format(new Date(), 'yyyy-MM-dd'),
+      end: format(new Date(), 'yyyy-MM-dd')
+  });
 
   const COLORS = { navy: "#002B50", green: "#1f781a", amber: "#f59e0b" };
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-        console.log(`🔄 Fetching sales data from ${startDate} to ${endDate}`);
-        
-        // Fetch only sales data (top_products now includes margin_percent)
-        const salesRes = await API.get('/reports/sales', { 
-          params: { start_date: startDate, end_date: endDate, period: 'daily' } 
-        });
-        
-        console.log('📊 Sales data received:', salesRes.data.data);
-
-        setReportData({
-            ...salesRes.data.data,
-            start_date: startDate,
-            end_date: endDate
-        });
-        
-    } catch (error) {
-        console.error("❌ Failed to fetch sales report:", error.response?.data || error);
-        setReportData(null);
-    } finally {
-        setLoading(false);
-    }
-  }, [startDate, endDate]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleDateFilterChange = (filterType, date) => {
+  // Calculate Start/End dates whenever Filter or Date changes
+  const calculateDateRange = useCallback((filter, date) => {
     let start, end;
-    switch (filterType) {
+    
+    switch (filter) {
         case "Weekly":
             start = startOfWeek(date, { weekStartsOn: 1 });
             end = endOfWeek(date, { weekStartsOn: 1 });
@@ -104,11 +80,60 @@ export default function SalesReport() {
             end = date;
             break;
     }
-    setStartDate(format(start, 'yyyy-MM-dd'));
-    setEndDate(format(end, 'yyyy-MM-dd'));
+    return {
+        start: format(start, 'yyyy-MM-dd'),
+        end: format(end, 'yyyy-MM-dd')
+    };
+  }, []);
+
+  // Update date range when UI state changes
+  useEffect(() => {
+      const range = calculateDateRange(activeFilter, activeDate);
+      setDateRange(range);
+  }, [activeFilter, activeDate, calculateDateRange]);
+
+
+  const fetchData = useCallback(async () => {
+    // Prevent fetching if start/end are null (initial load safety)
+    if (!dateRange.start || !dateRange.end) return;
+
+    setLoading(true);
+    try {
+        console.log(`🔄 Fetching sales data from ${dateRange.start} to ${dateRange.end}`);
+        
+        const salesRes = await API.get('/reports/sales', { 
+          params: { start_date: dateRange.start, end_date: dateRange.end, period: 'daily' } 
+        });
+        
+        setReportData({
+            ...salesRes.data.data,
+            start_date: dateRange.start,
+            end_date: dateRange.end
+        });
+        
+    } catch (error) {
+        console.error("❌ Failed to fetch sales report:", error.response?.data || error);
+        setReportData(null);
+    } finally {
+        setLoading(false);
+    }
+  }, [dateRange.start, dateRange.end]);
+
+  // Fetch when the CALCULATED date range changes
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Handler passed to CalendarFilter
+  const handleFilterChange = (newFilter, newDate) => {
+      setActiveFilter(newFilter);
+      setActiveDate(newDate);
+      // Note: State updates are async. The useEffect above will catch the change and update dateRange, triggering fetch.
   };
 
-  if (loading || !reportData) {
+  // --- Render Logic ---
+
+  if (loading && !reportData) {
     return (
         <div className="default-container flex flex-col items-center justify-center h-96">
             <Loader2 className="w-8 h-8 animate-spin text-navyBlue mb-4" />
@@ -117,12 +142,15 @@ export default function SalesReport() {
     );
   }
 
+  // Safety check for first render before data arrives
+  if (!reportData) return null; // Or a skeleton loader
+
   const { summary, sales_trend, sales_by_category, payment_methods, top_products } = reportData;
   
-  const currentRevenue = parseFloat(summary.total_revenue || 0);
-  const currentTransactions = parseInt(summary.total_transactions || 0);
-  const avgTransaction = parseFloat(summary.average_transaction_value || 0);
-  const prevRevenue = currentRevenue / 1.1;
+  const currentRevenue = parseFloat(summary?.total_revenue || 0);
+  const currentTransactions = parseInt(summary?.total_transactions || 0);
+  const avgTransaction = parseFloat(summary?.average_transaction_value || 0);
+  const prevRevenue = currentRevenue / 1.1; // Placeholder logic from your code
   const saleChange = ((currentRevenue - prevRevenue) / prevRevenue) * 100;
 
   const trendLabels = (sales_trend || []).map(d => d.date_label);
@@ -133,15 +161,10 @@ export default function SalesReport() {
   const categoryRevenue = (sales_by_category || []).map(c => parseFloat(c.total_revenue));
   const categoryVolume = (sales_by_category || []).map(c => parseInt(c.total_volume));
   
-  // FIX: Clean up payment method labels and ensure GCash is displayed correctly
   const normalizePaymentMethod = (method) => {
       if (!method) return 'GCash';
       const normalized = method.trim();
-      
-      // Map Mobile and Unknown to GCash
-      if (normalized === 'Mobile' || normalized === 'mobile' || normalized === 'Unknown' || normalized === '') return 'GCash';
-      
-      // Capitalize first letter for consistency
+      if (['Mobile', 'mobile', 'Unknown', ''].includes(normalized)) return 'GCash';
       return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   };
 
@@ -170,27 +193,35 @@ export default function SalesReport() {
   }));
 
   const fileName = `Sales_Report_${reportData.start_date}_to_${reportData.end_date}`;
-
-  // FIX: Display normalized top payment method in KPI
-  const topPaymentDisplay = normalizePaymentMethod(summary.top_payment_method);
+  const topPaymentDisplay = normalizePaymentMethod(summary?.top_payment_method);
 
   return (
     <div className="flex flex-col space-y-6" ref={reportRef}>
-      
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+         <button onClick={fetchData} className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-navyBlue transition-colors self-start">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} 
+            Refresh Data
+         </button>
 
-
-         <div className="flex gap-5 justify-end">
-            <CalendarFilter onChange={handleDateFilterChange} />
+         <div className="flex gap-5 justify-end items-center">
+            {/* CORRECTED COMPONENT AND PROPS */}
+            <CalendarFilter 
+                activeFilter={activeFilter} 
+                activeDate={activeDate} 
+                onChange={handleFilterChange} 
+            />
+            
             <ExportButton
                 data={exportData} 
                 columns={displayColumns}
                 fileName={fileName}
-                title={`Sales Report - ${startDate} to ${endDate}`}
+                title={`Sales Report - ${dateRange.start} to ${dateRange.end}`}
                 domElementRef={reportRef} 
             />
          </div>
-    
+      </div>
 
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard 
             bgColor={COLORS.navy} title="Total Revenue" icon={<DollarSign />} value={`₱${currentRevenue.toLocaleString('en-PH', {minimumFractionDigits: 2})}`} 
@@ -201,6 +232,7 @@ export default function SalesReport() {
         <KpiCard bgColor={COLORS.green} title="Top Payment" icon={<Star />} value={topPaymentDisplay} description="Most frequently used" />
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Chart 
             type="line" 
@@ -224,6 +256,7 @@ export default function SalesReport() {
         } />
       </div>
 
+      {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <Chart type="donut" title="Payment Distribution" categories={paymentLabels} series={paymentCounts} height={360} />
