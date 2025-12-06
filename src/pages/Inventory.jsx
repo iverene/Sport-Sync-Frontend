@@ -20,7 +20,7 @@ import {
   X,
   Loader2,
   Archive,
-  RefreshCw, // Icon for Reactivate
+  RefreshCw, 
 } from "lucide-react";
 
 const getCategoryMap = (categories) => {
@@ -191,7 +191,7 @@ export default function Inventory() {
   }, [
     searchQuery,
     selectedCategory,
-    selectedStockLevel, // Triggers re-fetch when filter changes
+    selectedStockLevel, 
     hasAlertBeenShown,
     categories.length,
     globalSettings,
@@ -614,7 +614,6 @@ export default function Inventory() {
         />
 
         <Table
-          tableName="All Products Inventory"
           columns={columns}
           data={data}
           rowsPerPage={10}
@@ -626,7 +625,7 @@ export default function Inventory() {
   return (
     <Layout>
       <div className="space-y-5">
-        <div className="mb-5 flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between">
           <div>
             <h1 className="page-title">Inventory</h1>
             <p className="page-description">
@@ -634,7 +633,7 @@ export default function Inventory() {
             </p>
           </div>
 
-          <div className="flex flex-row justify-end items-center gap-4 shrink-0 mt-15 lg:mt-0">
+          <div className="flex flex-row justify-end items-center gap-4 shrink-0 mt-5 lg:mt-0">
             {(user?.role === "Admin" || user?.role === "Staff") && (
               <>
                 <Scanner key="main-scanner" onScan={handleScan} />
@@ -647,12 +646,12 @@ export default function Inventory() {
                       sellingPrice: "0.00",
                       costPrice: "0.00",
                       initialStock: "0",
-                      reorderPoint: "10",
+                      reorderPoint: "20",
                       barcode: "",
                     });
                     setIsModalOpen(true);
                   }}
-                  className="text-softWhite px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  className="text-softWhite  px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                   style={{ backgroundColor: "#004B8D" }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.backgroundColor = "#003366")
@@ -830,7 +829,7 @@ export default function Inventory() {
       )}
 
       {toast && (
-        <div className="relative z-[9999]">
+        <div className="relative z-9999">
           <Toast
             message={toast.message}
             type={toast.type}

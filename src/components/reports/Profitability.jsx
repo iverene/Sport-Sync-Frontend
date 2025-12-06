@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"; 
+import { useState, useEffect, useCallback } from "react";
 import KpiCard from "../../components/KpiCard";
 import Table from "../../components/Table";
 import ExportButton from "../../components/ExportButton";
@@ -37,7 +37,6 @@ export default function Profitability() {
   const [loading, setLoading] = useState(false);
 
   // --- 1. CONTROLLED STATE (Single Source of Truth) ---
-  // Default to "Monthly" as profitability is usually a monthly metric
   const [activeFilter, setActiveFilter] = useState("Monthly");
   const [activeDate, setActiveDate] = useState(new Date());
 
@@ -105,14 +104,17 @@ export default function Profitability() {
       const processedData = rawData.map((p, index) => {
         const margin = parseFloat(p.margin_percent || 0);
         let status = "Average";
-        let statusBg = "bg-amber-500"; 
+        // Default style (Average) - Amber/Yellow
+        let statusStyles = "bg-amber-50 text-amber-700 border-amber-200";
 
         if (margin >= 50) {
           status = "Excellent";
-          statusBg = "bg-emerald-600";
+          // High Profit - Emerald/Green
+          statusStyles = "bg-emerald-50 text-emerald-700 border-emerald-200";
         } else if (margin < 30) {
           status = "Poor";
-          statusBg = "bg-rose-500";
+          // Low Profit - Red
+          statusStyles = "bg-red-50 text-red-700 border-red-200";
         }
 
         return {
@@ -120,28 +122,25 @@ export default function Profitability() {
           Product: p.product_name,
           Category: p.category_name,
           "Cost Price": `₱${parseFloat(p.cost_price || 0).toLocaleString()}`,
-          "Selling Price": `₱${parseFloat(
-            p.selling_price || 0
-          ).toLocaleString()}`,
-          "Gross Profit": `₱${parseFloat(
-            p.gross_profit || 0
-          ).toLocaleString()}`,
+          "Selling Price": `₱${parseFloat(p.selling_price || 0).toLocaleString()}`,
+          "Gross Profit": `₱${parseFloat(p.gross_profit || 0).toLocaleString()}`,
           "Margin %": (
             <span
               className={`font-semibold ${
                 margin >= 50
-                  ? "text-emerald-600"
+                  ? "text-emerald-500"
                   : margin < 30
-                  ? "text-rose-500"
+                  ? "text-red-500"
                   : "text-amber-500"
               }`}
             >
               {margin.toFixed(2)}%
             </span>
           ),
+          // Updated Status Badge with Minimal Style
           Status: (
             <span
-              className={`text-white px-2 py-1 rounded-full text-xs font-bold ${statusBg}`}
+              className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wide ${statusStyles}`}
             >
               {status}
             </span>
@@ -235,7 +234,7 @@ export default function Profitability() {
         <ExportButton
           data={exportData}
           columns={columns}
-          fileName={`Profitability_Report_${dateRange.start}_to_${dateRange.end}`}
+          fileName={`Balayan Smasher's Hub_Profitability_Report_${dateRange.start}_to_${dateRange.end}`}
           title={`Product Profitability - ${dateRange.start} to ${dateRange.end}`}
         />
       </div>
@@ -249,12 +248,15 @@ export default function Profitability() {
           value={`₱${totalGrossProfit.toLocaleString("en-PH", {
             minimumFractionDigits: 2,
           })}`}
+          description="Revenue minus Cost of Goods"
         />
+
         <KpiCard
           bgColor="#0A6DDC"
           title="Average Margin"
           icon={<BarChart4 />}
           value={`${averageMargin}%`}
+          description="Average profit percentage per item"
         />
         <KpiCard
           bgColor="#1f781a"

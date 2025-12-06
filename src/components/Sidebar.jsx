@@ -110,7 +110,7 @@ export default function Sidebar({ onToggle }) {
   </div>
 )}
 
-          <button onClick={handleLogout} className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 font-medium justify-start lg:${isCollapsed ? "justify-center" : "justify-start"} hover:bg-darkGreen hover:text-red-200`}>
+          <button onClick={handleLogout} className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 font-medium justify-start lg:${isCollapsed ? "justify-center" : "justify-start"} hover:bg-darkGreen `}>
             <LogOut size={20} stroke="currentColor" className="shrink-0" />
             <span className={`block lg:${isCollapsed ? "hidden" : "block"}`}>Log Out</span>
             {isCollapsed && <div className="hidden lg:block absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50">Log Out</div>}

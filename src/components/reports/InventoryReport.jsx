@@ -121,7 +121,7 @@ export default function InventoryReport() {
                     <ExportButton
                         data={exportData}
                         columns={columns}
-                        fileName={`Inventory_Data_${new Date().toISOString().split('T')[0]}`}
+                        fileName={`Balayan Smasher's Hub_Inventory_Data_${new Date().toISOString().split('T')[0]}`}
                         title={`Inventory Report - ${currentDate}`}
                     />
                 </div>
@@ -151,11 +151,12 @@ export default function InventoryReport() {
                 {/* Left Column: Category Table */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
                     <Table 
-                        tableName="Inventory Valuation by Category" 
-                        columns={columns} 
-                        data={categoryData} 
-                        rowsPerPage={10} 
-                    />
+                            tableName="Attention Required" 
+                            columns={stockColumns} 
+                            data={attentionProducts} 
+                            rowsPerPage={10}
+                        />
+                    
                 </div>
 
                 {/* Right Column: Health Status & Alerts */}
@@ -202,11 +203,11 @@ export default function InventoryReport() {
                     {/* Attention Table */}
                     <div className="grow">
                         <Table 
-                            tableName="Attention Required" 
-                            columns={stockColumns} 
-                            data={attentionProducts} 
-                            rowsPerPage={10}
-                        />
+                        tableName="Inventory Valuation by Category" 
+                        columns={columns} 
+                        data={categoryData} 
+                        rowsPerPage={10} 
+                    />
                     </div>
                 </div>
             </div>

@@ -22,14 +22,18 @@ export default function Navbar({ setOpenSidebar }) {
 
   return (
     <header
-      className={`
-        transition-transform duration-300
-        ${visible ? "translate-y-0" : "-translate-y-full"}
-        bg-softWhite shadow-sm border-b border-slate-100 flex justify-between items-center p-4
-        lg:rounded-xl lg:max-w-[calc(100%-2rem)] lg:mx-5
-        ${window.innerWidth < 1024 ? "fixed top-0 left-0 w-full z-40" : "sticky top-4 z-30"}
-      `}
-    >
+    className={`
+      transition-transform duration-300
+      ${visible ? "translate-y-0" : "-translate-y-full"}
+      bg-softWhite shadow-sm border-b border-slate-100 flex justify-between items-center p-4
+      
+      /* Base Mobile Styles (Fixed positioning) */
+      fixed top-0 left-0 w-full z-40
+      
+      /* Desktop Styles (Sticky positioning, resetting mobile constraints) */
+      lg:sticky lg:top-4 lg:z-30 lg:rounded-xl lg:max-w-[calc(100%-2rem)] lg:mx-5
+    `}
+  >
       {/* Left / hamburger */}
       <div className="flex items-center gap-3">
         <button

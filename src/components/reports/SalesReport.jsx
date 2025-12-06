@@ -159,7 +159,6 @@ export default function SalesReport() {
   const handleFilterChange = (newFilter, newDate) => {
     setActiveFilter(newFilter);
     setActiveDate(newDate);
-    // Note: State updates are async. The useEffect above will catch the change and update dateRange, triggering fetch.
   };
 
   // --- Render Logic ---
@@ -174,7 +173,7 @@ export default function SalesReport() {
   }
 
   // Safety check for first render before data arrives
-  if (!reportData) return null; // Or a skeleton loader
+  if (!reportData) return null;
 
   const {
     summary,
@@ -247,12 +246,12 @@ export default function SalesReport() {
     "Margin %": `${item._rawMargin.toFixed(2)}%`,
   }));
 
-  const fileName = `Sales_Report_${reportData.start_date}_to_${reportData.end_date}`;
+  const fileName = `Balayan Smasher's Hub_Sales_Report_${reportData.start_date}_to_${reportData.end_date}`;
   const topPaymentDisplay = normalizePaymentMethod(summary?.top_payment_method);
 
   return (
     <div className="flex flex-col space-y-6" ref={reportRef}>
-      <div className="flex flex-col sm:flex-row gap-3 justify-end items-center">
+      <div className="flex flex-row gap-3 justify-end items-center">
         <button
           onClick={fetchData}
           disabled={loading}

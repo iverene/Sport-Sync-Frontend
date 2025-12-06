@@ -252,7 +252,7 @@ export default function TransactionHistory() {
     <div className="flex flex-col space-y-6">
       {/* Header & Controls */}
 
-      <div className="flex flex-col sm:flex-row gap-3 justify-end items-center">
+      <div className="flex flex-row gap-3 justify-end items-center">
         <button
           onClick={fetchData}
           disabled={loading}
@@ -275,7 +275,7 @@ export default function TransactionHistory() {
         <ExportButton
           data={exportData}
           columns={exportColumns}
-          fileName={`Transaction_History_${dateRange.start}_to_${dateRange.end}`}
+          fileName={`Balayan Smasher's Hub_Transaction_History_${dateRange.start}_to_${dateRange.end}`}
           title={`Transaction History - ${dateRange.start} to ${dateRange.end}`}
         />
       </div>
