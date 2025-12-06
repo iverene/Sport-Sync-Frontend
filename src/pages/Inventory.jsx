@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"; 
+import { useEffect, useState, useCallback } from "react";
 import Layout from "../components/Layout";
 import Table from "../components/Table";
 import KpiCard from "../components/KpiCard";
@@ -6,9 +6,9 @@ import Filter from "../components/Filter";
 import Scanner from "../components/Scanner.jsx";
 import EditProductModal from "../components/inventory/EditProductModal.jsx";
 import AlertModal from "../components/inventory/AlertModal.jsx";
-import Toast from "../components/Toast"; 
+import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
-import API from '../services/api'; 
+import API from "../services/api";
 import {
   Package,
   AlertTriangle,
@@ -20,7 +20,7 @@ import {
   X,
   Loader2,
   Archive,
-  RotateCcw
+  RotateCcw,
 } from "lucide-react";
 
 // Helper function to create category map from API response
@@ -32,30 +32,30 @@ const getCategoryMap = (categories) => {
 };
 
 const columns = [
-    { header: "Product", accessor: "Product" },
-    { header: "Category", accessor: "Category" },
-    { header: "Cost Price", accessor: "Cost Price" },
-    { header: "Selling Price", accessor: "Selling Price" },
-    { header: "Stock", accessor: "Stock" },
-    { header: "Status", accessor: "Status" },
-    { header: "Actions", accessor: "Actions" },
+  { header: "Product", accessor: "Product" },
+  { header: "Category", accessor: "Category" },
+  { header: "Cost Price", accessor: "Cost Price" },
+  { header: "Selling Price", accessor: "Selling Price" },
+  { header: "Stock", accessor: "Stock" },
+  { header: "Status", accessor: "Status" },
+  { header: "Actions", accessor: "Actions" },
 ];
 
 export default function Inventory() {
   const { user } = useAuth();
-  
-  const [products, setProducts] = useState([]); 
+
+  const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [inventoryKpis, setInventoryKpis] = useState(null);
-  
+
   // FIX #1: Add state for global settings with defaults
   const [globalSettings, setGlobalSettings] = useState({
     stock_threshold_low: 20,
-    stock_threshold_critical: 10
+    stock_threshold_critical: 10,
   });
-  
-  const [isFetching, setIsFetching] = useState(true); 
-  const [isInitialLoading, setIsInitialLoading] = useState(true); 
+
+  const [isFetching, setIsFetching] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,99 +78,114 @@ export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockLevel, setSelectedStockLevel] = useState("all");
-  
+
   // FIX #1: Fetch global settings on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await API.get('/settings');
+        const response = await API.get("/settings");
         const settings = response.data.data || {};
         setGlobalSettings({
           stock_threshold_low: parseInt(settings.stock_threshold_low) || 20,
-          stock_threshold_critical: parseInt(settings.stock_threshold_critical) || 10
+          stock_threshold_critical:
+            parseInt(settings.stock_threshold_critical) || 10,
         });
       } catch (error) {
         console.error("Failed to fetch global settings:", error);
       }
     };
-    
+
     fetchSettings();
   }, []);
-  
+
   // FETCH DATA FUNCTION
   const fetchData = useCallback(async () => {
-    setIsFetching(true); 
+    setIsFetching(true);
     let fetchedReport = null;
 
     try {
       // 1. Fetch Categories
       if (categories.length === 0) {
-        const catResponse = await API.get('/categories');
+        const catResponse = await API.get("/categories");
         setCategories(catResponse.data.data || []);
       }
-      
+
       // 2. Fetch Inventory Report/KPIs
-      const reportResponse = await API.get('/reports/inventory');
-      fetchedReport = reportResponse.data.data || {}; 
+      const reportResponse = await API.get("/reports/inventory");
+      fetchedReport = reportResponse.data.data || {};
       setInventoryKpis(fetchedReport.summary);
-      
+
       // 3. Fetch Products
       const fetchParams = {
-        limit: 1000, 
+        limit: 1000,
         search: searchQuery,
-        category_id: selectedCategory === 'all' ? undefined : selectedCategory,
+        category_id: selectedCategory === "all" ? undefined : selectedCategory,
       };
 
-      const prodResponse = await API.get('/products', { params: fetchParams });
-      const fetchedProducts = prodResponse.data.data || []; 
-      
+      const prodResponse = await API.get("/products", { params: fetchParams });
+      const fetchedProducts = prodResponse.data.data || [];
+
       // FIX #2: Correct Logic for Stock Level Filtering
       let finalProducts = fetchedProducts;
-      
+
       const criticalThreshold = globalSettings.stock_threshold_critical;
       const lowThreshold = globalSettings.stock_threshold_low;
 
-      if (selectedStockLevel !== 'all') {
-        finalProducts = finalProducts.filter(p => {
-            switch(selectedStockLevel) {
-                case 'out-of-stock': 
-                    return p.quantity === 0;
-                case 'critical':
-                    return p.quantity > 0 && p.quantity <= criticalThreshold;
-                case 'low-stock': 
-                    return p.quantity > criticalThreshold && p.quantity <= lowThreshold;
-                case 'in-stock': 
-                    return p.quantity > lowThreshold;
-                default: 
-                    return true;
-            }
+      if (selectedStockLevel !== "all") {
+        finalProducts = finalProducts.filter((p) => {
+          switch (selectedStockLevel) {
+            case "out-of-stock":
+              return p.quantity === 0;
+            case "critical":
+              return p.quantity > 0 && p.quantity <= criticalThreshold;
+            case "low-stock":
+              return (
+                p.quantity > criticalThreshold && p.quantity <= lowThreshold
+              );
+            case "in-stock":
+              return p.quantity > lowThreshold;
+            default:
+              return true;
+          }
         });
       }
-      
+
       setProducts(finalProducts);
-      
+
       // FIX #3: Logic to trigger Alert Modal
       // We calculate the alert list locally to ensure it includes Out of Stock items
-      const hasIssues = fetchedProducts.some(p => 
-        p.status === 'Active' && p.quantity <= lowThreshold
+      const hasIssues = fetchedProducts.some(
+        (p) => p.status === "Active" && p.quantity <= lowThreshold
       );
-      
+
       if (hasIssues && !hasAlertBeenShown) {
         setIsAlertOpen(true);
         setHasAlertBeenShown(true);
       }
-
     } catch (error) {
-      console.error("Failed to fetch inventory data:", error.response?.data || error);
-      setProducts([]); 
+      console.error(
+        "Failed to fetch inventory data:",
+        error.response?.data || error
+      );
+      setProducts([]);
       setInventoryKpis(null);
-      setToast({ message: "Failed to load inventory data. Check server connection.", type: "error" });
+      setToast({
+        message: "Failed to load inventory data. Check server connection.",
+        type: "error",
+      });
     } finally {
       setIsFetching(false);
       setIsInitialLoading(false);
     }
-  }, [searchQuery, selectedCategory, selectedStockLevel, hasAlertBeenShown, categories.length, globalSettings]); 
-  
+  }, [
+    searchQuery,
+    selectedCategory,
+    selectedStockLevel,
+    hasAlertBeenShown,
+    categories.length,
+    globalSettings,
+  ]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -179,12 +194,15 @@ export default function Inventory() {
 
   const handleScan = (scannedBarcode) => {
     API.get(`/products/barcode/${scannedBarcode}`)
-      .then(response => {
+      .then((response) => {
         const existingProduct = response.data.data;
         setSelectedProduct(existingProduct);
         setIsEditModalOpen(true);
         setIsModalOpen(false);
-        setToast({ message: `Product "${existingProduct.product_name}" found!`, type: "success" });
+        setToast({
+          message: `Product "${existingProduct.product_name}" found!`,
+          type: "success",
+        });
       })
       .catch(() => {
         setFormData({
@@ -196,11 +214,14 @@ export default function Inventory() {
           reorderPoint: "10",
           barcode: scannedBarcode,
         });
-        
+
         setIsModalOpen(true);
         setIsEditModalOpen(false);
-        
-        setToast({ message: `Barcode ${scannedBarcode} not found. Ready to add.`, type: "info" });
+
+        setToast({
+          message: `Barcode ${scannedBarcode} not found. Ready to add.`,
+          type: "info",
+        });
       });
   };
 
@@ -209,71 +230,95 @@ export default function Inventory() {
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = async (product) => { 
-    if (!window.confirm(`Are you sure you want to delete "${product.product_name}"?`)) return;
+  const handleDelete = async (product) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${product.product_name}"?`
+      )
+    )
+      return;
 
     try {
       const response = await API.delete(`/products/${product.product_id}`);
       setToast({ message: response.data.message, type: "success" });
-      fetchData(); 
+      fetchData();
     } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to delete product.';
-      if (error.response?.status === 400 && msg.toLowerCase().includes('transaction history')) {
-          if (window.confirm("This product cannot be deleted because it has sales history. Do you want to ARCHIVE (Deactivate) it instead?")) {
-              try {
-                  await API.put(`/products/${product.product_id}`, { status: 'Inactive' });
-                  setToast({ message: "Product archived successfully.", type: "success" });
-                  fetchData();
-              } catch (archiveErr) {
-                  setToast({ message: "Failed to archive product.", type: "error" });
-              }
+      const msg = error.response?.data?.message || "Failed to delete product.";
+      if (
+        error.response?.status === 400 &&
+        msg.toLowerCase().includes("transaction history")
+      ) {
+        if (
+          window.confirm(
+            "This product cannot be deleted because it has sales history. Do you want to ARCHIVE (Deactivate) it instead?"
+          )
+        ) {
+          try {
+            await API.put(`/products/${product.product_id}`, {
+              status: "Inactive",
+            });
+            setToast({
+              message: "Product archived successfully.",
+              type: "success",
+            });
+            fetchData();
+          } catch (archiveErr) {
+            setToast({ message: "Failed to archive product.", type: "error" });
           }
+        }
       } else {
-          setToast({ message: msg, type: "error" });
+        setToast({ message: msg, type: "error" });
       }
     }
   };
 
   const handleRestore = async (product) => {
-    if (!window.confirm(`Restore "${product.product_name}" to active inventory?`)) return;
+    if (
+      !window.confirm(`Restore "${product.product_name}" to active inventory?`)
+    )
+      return;
     try {
-        await API.put(`/products/${product.product_id}`, { status: 'Active' });
-        setToast({ message: "Product restored successfully!", type: "success" });
-        fetchData();
+      await API.put(`/products/${product.product_id}`, { status: "Active" });
+      setToast({ message: "Product restored successfully!", type: "success" });
+      fetchData();
     } catch (error) {
-        setToast({ message: "Failed to restore product.", type: "error" });
+      setToast({ message: "Failed to restore product.", type: "error" });
     }
   };
-  
+
   const handleSaveProduct = async (updatedProduct) => {
     const productId = updatedProduct.product_id;
-    const oldProduct = products.find(p => p.product_id === productId); 
+    const oldProduct = products.find((p) => p.product_id === productId);
 
     try {
-        const reorderLevelRaw = updatedProduct.reorder_level ?? updatedProduct.reorder_point ?? updatedProduct.reorderPoint ?? updatedProduct.reorderLevel;
-        const productDetailsPayload = {
-            product_name: updatedProduct.product_name, 
-            category_id: parseInt(updatedProduct.category_id),
-            selling_price: parseFloat(updatedProduct.selling_price),
-            cost_price: parseFloat(updatedProduct.cost_price),
-            reorder_level: parseInt(reorderLevelRaw || 0), 
+      const reorderLevelRaw =
+        updatedProduct.reorder_level ??
+        updatedProduct.reorder_point ??
+        updatedProduct.reorderPoint ??
+        updatedProduct.reorderLevel;
+      const productDetailsPayload = {
+        product_name: updatedProduct.product_name,
+        category_id: parseInt(updatedProduct.category_id),
+        selling_price: parseFloat(updatedProduct.selling_price),
+        cost_price: parseFloat(updatedProduct.cost_price),
+        reorder_level: parseInt(reorderLevelRaw || 0),
+      };
+
+      await API.put(`/products/${productId}`, productDetailsPayload);
+
+      if (oldProduct && oldProduct.quantity !== updatedProduct.quantity) {
+        const stockPayload = {
+          quantity: updatedProduct.quantity,
+          change_type: "Manual Adjustment",
         };
-        
-        await API.put(`/products/${productId}`, productDetailsPayload);
+        await API.patch(`/products/${productId}/stock`, stockPayload);
+      }
 
-        if (oldProduct && oldProduct.quantity !== updatedProduct.quantity) {
-             const stockPayload = {
-                 quantity: updatedProduct.quantity,
-                 change_type: 'Manual Adjustment'
-             };
-             await API.patch(`/products/${productId}/stock`, stockPayload);
-        }
-
-        setToast({ message: "Product updated successfully!", type: "success" });
-        fetchData(); 
+      setToast({ message: "Product updated successfully!", type: "success" });
+      fetchData();
     } catch (error) {
-        const msg = error.response?.data?.message || 'Failed to update product.';
-        setToast({ message: msg, type: "error" });
+      const msg = error.response?.data?.message || "Failed to update product.";
+      setToast({ message: msg, type: "error" });
     }
   };
 
@@ -282,11 +327,19 @@ export default function Inventory() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => { 
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.productName || !formData.category || !formData.sellingPrice || !formData.barcode) {
-      setToast({ message: "Please fill in all required fields.", type: "error" });
-      return; 
+    if (
+      !formData.productName ||
+      !formData.category ||
+      !formData.sellingPrice ||
+      !formData.barcode
+    ) {
+      setToast({
+        message: "Please fill in all required fields.",
+        type: "error",
+      });
+      return;
     }
 
     try {
@@ -300,102 +353,154 @@ export default function Inventory() {
         reorder_level: parseInt(formData.reorderPoint),
       };
 
-      const response = await API.post('/products', payload);
+      const response = await API.post("/products", payload);
       setToast({ message: response.data.message, type: "success" });
-      fetchData(); 
+      fetchData();
       setIsModalOpen(false);
     } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to add product.';
+      const msg = error.response?.data?.message || "Failed to add product.";
       setToast({ message: msg, type: "error" });
     }
   };
 
-  const categoryMap = getCategoryMap(categories); 
+  const categoryMap = getCategoryMap(categories);
 
   // ✅ GENERATE COMPREHENSIVE ALERT LIST
   // This derives the list from all loaded products to ensure we capture Out of Stock items
   // (The API's 'products_requiring_attention' sometimes excludes 0 quantity items depending on backend logic)
   const alertList = products
-    .filter(p => p.status === 'Active' && p.quantity <= globalSettings.stock_threshold_low)
-    .map(p => {
-        let status = 'low';
-        if (p.quantity === 0) status = 'out_of_stock';
-        else if (p.quantity <= globalSettings.stock_threshold_critical) status = 'critical';
+    .filter(
+      (p) =>
+        p.status === "Active" &&
+        p.quantity <= globalSettings.stock_threshold_low
+    )
+    .map((p) => {
+      let status = "low";
+      if (p.quantity === 0) status = "out_of_stock";
+      else if (p.quantity <= globalSettings.stock_threshold_critical)
+        status = "critical";
 
-        return {
-            name: p.product_name,
-            sku: p.barcode,
-            current: p.quantity,
-            minimum: p.reorder_level, // Keep original reorder level for reference
-            status: status,
-            unit: "units",
-        };
+      return {
+        name: p.product_name,
+        sku: p.barcode,
+        current: p.quantity,
+        minimum: p.reorder_level, // Keep original reorder level for reference
+        status: status,
+        unit: "units",
+      };
     })
     .sort((a, b) => {
-        // Sort Priority: Out of Stock > Critical > Low
-        const priority = { out_of_stock: 0, critical: 1, low: 2 };
-        return priority[a.status] - priority[b.status];
+      // Sort Priority: Out of Stock > Critical > Low
+      const priority = { out_of_stock: 0, critical: 1, low: 2 };
+      return priority[a.status] - priority[b.status];
     });
 
   const data = products.map((p) => {
-    const isArchived = p.status === 'Inactive';
-    
+    const isArchived = p.status === "Inactive";
+
     // Determine Status Logic (Must match the Filter Logic)
     let statusBadge;
     const criticalThreshold = globalSettings.stock_threshold_critical;
     const lowThreshold = globalSettings.stock_threshold_low;
 
     if (isArchived) {
-        statusBadge = <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase border border-gray-200">Archived</span>;
+      statusBadge = (
+        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase border border-gray-200">
+          Archived
+        </span>
+      );
     } else if (p.quantity === 0) {
-        statusBadge = <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">Out of Stock</span>;
+      statusBadge = (
+        <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold uppercase">
+          Out of Stock
+        </span>
+      );
     } else if (p.quantity > 0 && p.quantity <= criticalThreshold) {
-        statusBadge = <span className="bg-red-50 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase border border-red-200">Critical</span>;
+      statusBadge = (
+        <span className="bg-red-50 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase border border-red-200">
+          Critical
+        </span>
+      );
     } else if (p.quantity > criticalThreshold && p.quantity <= lowThreshold) {
-        statusBadge = <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold uppercase">Low Stock</span>;
+      statusBadge = (
+        <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold uppercase">
+          Low Stock
+        </span>
+      );
     } else {
-        statusBadge = <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">In Stock</span>;
+      statusBadge = (
+        <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-bold uppercase">
+          In Stock
+        </span>
+      );
     }
 
     return {
-      id: p.product_id, 
+      id: p.product_id,
       Product: (
-        <div className={`flex items-center gap-2 ${isArchived ? "text-gray-400 italic" : "text-gray-900"}`}>
-            {isArchived && <Archive size={14} />}
-            {p.product_name}
+        <div
+          className={`flex items-center gap-2 ${
+            isArchived ? "text-gray-400 italic" : "text-gray-900"
+          }`}
+        >
+          {isArchived && <Archive size={14} />}
+          {p.product_name}
         </div>
       ),
-      Category: categoryMap[p.category_id] || 'N/A', 
-      "Cost Price": `₱${parseFloat(p.cost_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
-      "Selling Price": `₱${parseFloat(p.selling_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      Category: categoryMap[p.category_id] || "N/A",
+      "Cost Price": `₱${parseFloat(p.cost_price || 0).toLocaleString("en-PH", {
+        minimumFractionDigits: 2,
+      })}`,
+      "Selling Price": `₱${parseFloat(p.selling_price || 0).toLocaleString(
+        "en-PH",
+        { minimumFractionDigits: 2 }
+      )}`,
       Stock: (
-        <span className={
-            isArchived ? "text-gray-400" : 
-            p.quantity === 0 ? "text-red-500 font-bold" : "text-emerald-600 font-bold"
-        }>
+        <span
+          className={
+            isArchived
+              ? "text-gray-400"
+              : p.quantity === 0
+              ? "text-red-500 font-bold"
+              : "text-emerald-600 font-bold"
+          }
+        >
           {p.quantity}
         </span>
       ),
       Status: statusBadge,
       Actions: (
-          <div className="flex gap-2">
-            {!isArchived && (user?.role === "Admin" || user?.role === "Staff") && (
-              <button onClick={() => handleEditClick(p)} className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-100 hover:bg-blue-50 rounded transition-colors" title="Edit Product">
+        <div className="flex gap-2">
+          {!isArchived &&
+            (user?.role === "Admin" || user?.role === "Staff") && (
+              <button
+                onClick={() => handleEditClick(p)}
+                className="p-1.5 text-slate-500 hover:text-navyBlue bg-slate-100 hover:bg-blue-50 rounded transition-colors"
+                title="Edit Product"
+              >
                 <Edit size={16} />
               </button>
             )}
-            {isArchived && (user?.role === "Admin" || user?.role === "Staff") && (
-                <button onClick={() => handleRestore(p)} className="p-1.5 text-slate-500 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded transition-colors" title="Restore Product">
-                    <RotateCcw size={16} />
-                </button>
-            )}
-            {user?.role === "Admin" && (
-              <button onClick={() => handleDelete(p)} className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded transition-colors" title={isArchived ? "Permanently Delete" : "Delete or Archive"}>
-                <Trash2 size={16} />
-              </button>
-            )}
-          </div>
-        ),
+          {isArchived && (user?.role === "Admin" || user?.role === "Staff") && (
+            <button
+              onClick={() => handleRestore(p)}
+              className="p-1.5 text-slate-500 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded transition-colors"
+              title="Restore Product"
+            >
+              <RotateCcw size={16} />
+            </button>
+          )}
+          {user?.role === "Admin" && (
+            <button
+              onClick={() => handleDelete(p)}
+              className="p-1.5 text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 rounded transition-colors"
+              title={isArchived ? "Permanently Delete" : "Delete or Archive"}
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      ),
     };
   });
 
@@ -406,7 +511,10 @@ export default function Inventory() {
       onChange: (e) => setSelectedCategory(e.target.value),
       options: [
         { value: "all", label: "All Categories" },
-        ...categories.map((cat) => ({ value: String(cat.category_id), label: cat.category_name })),
+        ...categories.map((cat) => ({
+          value: String(cat.category_id),
+          label: cat.category_name,
+        })),
       ],
     },
     {
@@ -424,50 +532,72 @@ export default function Inventory() {
   ];
 
   const renderMainContent = () => {
-      if (isInitialLoading) {
-          return (
-            <div className="flex flex-col items-center justify-center h-[70vh] bg-white rounded-xl shadow-sm">
-                <Loader2 className="w-8 h-8 animate-spin text-navyBlue" />
-                <p className="text-slate-500 mt-4">Initializing application data...</p>
-            </div>
-          );
-      }
-      
+    if (isInitialLoading) {
       return (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard bgColor="#002B50" title="Total Products" icon={<Package />} value={inventoryKpis?.total_products || 0} />
-              <KpiCard bgColor="#F39C12" title="Low Stock" icon={<TrendingDown />} value={inventoryKpis?.low_stock_count || 0} />
-              <KpiCard bgColor="#D32F2F" title="Critical Stock" icon={<AlertOctagon />} value={inventoryKpis?.critical_stock_count || 0} />
-              <KpiCard bgColor="#E74C3C" title="Out of Stock" icon={<AlertTriangle />} value={inventoryKpis?.out_of_stock_count || 0} />
-            </div>
-    
-            <Filter
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              searchPlaceholder="Search products by name..."
-              filters={filterConfig}
-              showClearButton={
-                searchQuery ||
-                selectedCategory !== "all" ||
-                selectedStockLevel !== "all"
-              }
-              onClear={() => {
-                setSearchQuery("");
-                setSelectedCategory("all");
-                setSelectedStockLevel("all");
-              }}
-              resultsCount={`Showing ${products.length} products`}
-            />
-    
-            <Table
-                tableName="All Products Inventory"
-                columns={columns}
-                data={data}
-                rowsPerPage={10}
-            />
-          </>
+        <div className="flex flex-col items-center justify-center h-[70vh] bg-white rounded-xl shadow-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-navyBlue" />
+          <p className="text-slate-500 mt-4">
+            Initializing application data...
+          </p>
+        </div>
       );
+    }
+
+    return (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            bgColor="#002B50"
+            title="Total Products"
+            icon={<Package />}
+            value={inventoryKpis?.total_products || 0}
+          />
+          <KpiCard
+            bgColor="#F39C12"
+            title="Low Stock"
+            icon={<TrendingDown />}
+            value={inventoryKpis?.low_stock_count || 0}
+          />
+          <KpiCard
+            bgColor="#D32F2F"
+            title="Critical Stock"
+            icon={<AlertOctagon />}
+            value={inventoryKpis?.critical_stock_count || 0}
+          />
+          <KpiCard
+            bgColor="#E74C3C"
+            title="Out of Stock"
+            icon={<AlertTriangle />}
+            value={inventoryKpis?.out_of_stock_count || 0}
+          />
+        </div>
+
+        <Filter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search products by name..."
+          filters={filterConfig}
+          showClearButton={
+            searchQuery ||
+            selectedCategory !== "all" ||
+            selectedStockLevel !== "all"
+          }
+          onClear={() => {
+            setSearchQuery("");
+            setSelectedCategory("all");
+            setSelectedStockLevel("all");
+          }}
+          resultsCount={`Showing ${products.length} products`}
+        />
+
+        <Table
+          tableName="All Products Inventory"
+          columns={columns}
+          data={data}
+          rowsPerPage={10}
+        />
+      </>
+    );
   };
 
   return (
@@ -482,60 +612,61 @@ export default function Inventory() {
           </div>
 
           <div className="flex flex-row justify-end items-center gap-4 shrink-0 mt-15 lg:mt-0">
-            <Scanner key="main-scanner" onScan={handleScan} /> 
-            
             {(user?.role === "Admin" || user?.role === "Staff") && (
-              <button
-                onClick={() => {
-                  setFormData({
-                    productName: "",
-                    category: "",
-                    sellingPrice: "0.00",
-                    costPrice: "0.00",
-                    initialStock: "0",
-                    reorderPoint: "10",
-                    barcode: "",
-                  });
-                  setIsModalOpen(true);
-                }}
-                className="text-softWhite px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                style={{ backgroundColor: "#004B8D" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#003366")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#004B8D")
-                }
-              >
-                <PlusCircle size={18} />
-                Add Product
-              </button>
+              <>
+                <Scanner key="main-scanner" onScan={handleScan} />
+
+                <button
+                  onClick={() => {
+                    setFormData({
+                      productName: "",
+                      category: "",
+                      sellingPrice: "0.00",
+                      costPrice: "0.00",
+                      initialStock: "0",
+                      reorderPoint: "10",
+                      barcode: "",
+                    });
+                    setIsModalOpen(true);
+                  }}
+                  className="text-softWhite px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  style={{ backgroundColor: "#004B8D" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#003366")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#004B8D")
+                  }
+                >
+                  <PlusCircle size={18} />
+                  Add Product
+                </button>
+              </>
             )}
           </div>
         </div>
 
         {renderMainContent()}
-
       </div>
 
       {isModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-charcoalBlack/40 bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => setIsModalOpen(false)}
         >
-          <div 
+          <div
             className="bg-softWhite rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-navyBlue flex items-center justify-between p-6 border-b">
               <div>
                 <h2 className="text-xl font-semibold text-gray-200">
-                  {products.find(p => p.barcode === formData.barcode) 
-                    ? "Product Details" 
+                  {products.find((p) => p.barcode === formData.barcode)
+                    ? "Product Details"
                     : "Add New Sports Product"}
                 </h2>
                 <p className="text-sm text-gray-200 mt-1">
-                  {products.find(p => p.barcode === formData.barcode)
+                  {products.find((p) => p.barcode === formData.barcode)
                     ? "View or replicate existing product details."
                     : "Fill in the details below to add a new item."}
                 </p>
@@ -548,7 +679,7 @@ export default function Inventory() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6"> 
+            <form onSubmit={handleSubmit} className="p-6">
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -661,7 +792,7 @@ export default function Inventory() {
                   />
                 </div>
               </div>
-              
+
               <div className="p-6">
                 <button
                   type="submit"
@@ -677,12 +808,12 @@ export default function Inventory() {
 
       {toast && (
         <div className="relative z-[9999]">
-            <Toast
+          <Toast
             message={toast.message}
             type={toast.type}
             duration={2000}
             onClose={() => setToast(null)}
-            />
+          />
         </div>
       )}
 
