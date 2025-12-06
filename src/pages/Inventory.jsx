@@ -13,7 +13,7 @@ import {
   Package,
   AlertTriangle,
   TrendingDown,
-  AlertOctagon, // Ensure this import is present
+  AlertOctagon, 
   Trash2,
   Edit,
   PlusCircle,
@@ -23,7 +23,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-// Helper function to create category map from API response
+
 const getCategoryMap = (categories) => {
   return (categories || []).reduce((acc, cat) => {
     acc[cat.category_id] = cat.category_name;
@@ -79,7 +79,6 @@ export default function Inventory() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockLevel, setSelectedStockLevel] = useState("all");
 
-  // FIX #1: Fetch global settings on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -152,8 +151,6 @@ export default function Inventory() {
 
       setProducts(finalProducts);
 
-      // FIX #3: Logic to trigger Alert Modal
-      // We calculate the alert list locally to ensure it includes Out of Stock items
       const hasIssues = fetchedProducts.some(
         (p) => p.status === "Active" && p.quantity <= lowThreshold
       );
@@ -365,9 +362,6 @@ export default function Inventory() {
 
   const categoryMap = getCategoryMap(categories);
 
-  // ✅ GENERATE COMPREHENSIVE ALERT LIST
-  // This derives the list from all loaded products to ensure we capture Out of Stock items
-  // (The API's 'products_requiring_attention' sometimes excludes 0 quantity items depending on backend logic)
   const alertList = products
     .filter(
       (p) =>
@@ -384,7 +378,7 @@ export default function Inventory() {
         name: p.product_name,
         sku: p.barcode,
         current: p.quantity,
-        minimum: p.reorder_level, // Keep original reorder level for reference
+        minimum: p.reorder_level, 
         status: status,
         unit: "units",
       };
@@ -398,7 +392,6 @@ export default function Inventory() {
   const data = products.map((p) => {
     const isArchived = p.status === "Inactive";
 
-    // Determine Status Logic (Must match the Filter Logic)
     let statusBadge;
     const criticalThreshold = globalSettings.stock_threshold_critical;
     const lowThreshold = globalSettings.stock_threshold_low;

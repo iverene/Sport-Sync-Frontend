@@ -155,7 +155,7 @@ export default function Dashboard() {
           title="Low Stock Items"
           icon={<Boxes />}
           value={lowStock}
-          description="Items below reorder point"
+          description="Items requiring restocking soon"
         />
 
         {/* Out of Stock KPI */}
