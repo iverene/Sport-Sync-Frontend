@@ -296,13 +296,13 @@ export default function POS() {
 
         {/* --- RIGHT COLUMN: CART (Desktop Sidebar) --- */}
         <div className="
-            fixed bottom-0 left-0 right-0 h-20 bg-softWhite border-t border-slate-200 p-4 
+            fixed bottom-0 left-0 right-0 h-20 bg-softWhite border-t border-slate-200 p-2 
             shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 
             z-40 
             lg:shadow-none lg:static lg:h-full lg:w-[340px] lg:flex lg:flex-col lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-softWhite
         ">
             {/* Mobile View Summary Bar */}
-            <div className="flex lg:hidden justify-between items-center w-full">
+            <div className="flex lg:hidden justify-between items-center w-full p-2">
                 <div className="flex flex-col">
                     <span className="text-xs text-slate-500">Total ({cart.length} items)</span>
                     <span className="font-bold text-navyBlue text-xl">₱{totalAmount.toLocaleString()}</span>
@@ -341,7 +341,7 @@ export default function POS() {
                     )}
                 </div>
 
-                <div className="p-5 bg-slate-50 border-t border-slate-200 mt-auto rounded-b-2xl">
+                <div className="p-2 bg-slate-50 border-t border-slate-200 mt-auto rounded-b-2xl">
                     <div className="mb-4">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2 block">
                         Payment Method
@@ -355,7 +355,7 @@ export default function POS() {
                               key={option.id}
                               onClick={() => setPaymentMethod(option.id)}
                               className={`
-                                flex flex-col items-center justify-center py-2 rounded-lg border transition-all duration-200
+                                flex flex-col items-center justify-center py-1 rounded-lg border transition-all duration-200
                                 ${isSelected 
                                   ? "bg-navyBlue border-navyBlue text-softWhite shadow-md ring-1 ring-navyBlue" 
                                   : "bg-softWhite border-slate-200 text-slate-600 hover:border-navyBlue hover:text-navyBlue"}
@@ -416,42 +416,42 @@ export default function POS() {
                         </div>
 
                         {paymentMethod === "Cash" && (
-                          <div className="flex justify-between text-emerald-600 text-lg font-bold">
+                          <div className="flex justify-between text-emerald-600 text-base font-bold">
                               <span>Change</span>
                               <span>₱{change.toLocaleString()}</span>
                           </div>
                         )}
 
-                        <div className="flex justify-between text-navyBlue font-extrabold text-xl pt-1 border-t border-dashed border-slate-300">
+                        <div className="flex justify-between text-navyBlue font-extrabold text-lg pt-1 border-t border-dashed border-slate-300">
                             <span>Total Due</span>
                             <span>₱{totalAmount.toLocaleString()}</span>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-4 gap-2">
                         <button 
                             disabled={cart.length === 0}
                             onClick={clearCart}
-                            className="col-span-1 flex items-center justify-center bg-softWhite border border-slate-200 text-rose-500 rounded-xl hover:bg-rose-50 hover:border-rose-200 transition-colors disabled:opacity-50"
+                            className="col-span-1 flex items-center justify-center bg-softWhite border border-slate-200 text-rose-500 rounded-lg hover:bg-rose-50 hover:border-rose-200 transition-colors disabled:opacity-50"
                             title="Clear Cart"
                         >
-                            <Trash2 size={20} />
+                            <Trash2 size={18} />
                         </button>
 
                         <button 
                             disabled={cart.length === 0 || (paymentMethod === "Cash" && !isPaymentSufficient)}
-                            onClick={() => handleCheckout()} // Desktop call uses state
+                            onClick={() => handleCheckout()} 
                             className={`
-                              col-span-3 bg-navyBlue text-softWhite py-3.5 rounded-xl font-bold text-base hover:bg-darkGreen transition-colors shadow-lg shadow-indigo-900/10 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2
+                              col-span-3 bg-navyBlue text-softWhite py-2.5 rounded-lg font-bold text-sm hover:bg-darkGreen transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2
                               ${(cart.length === 0 || (paymentMethod === "Cash" && !isPaymentSufficient))
                                 ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" 
-                                : "bg-navyBlue text-softWhite hover:bg-darkGreen hover:shadow-emerald-900/20 active:scale-[0.98]"}
+                                : "bg-navyBlue text-softWhite hover:bg-darkGreen hover:shadow-md active:scale-[0.98]"}
                             `}
                         >
                             {paymentMethod === "Cash" && !isPaymentSufficient ? (
                               <span>Insufficient</span>
                             ) : (
-                              <span>Pay {paymentMethod}</span>
+                              <span>Pay</span>
                             )}
                         </button>
                     </div>
@@ -481,7 +481,7 @@ export default function POS() {
             onDecrease={(id) => updateQuantity(id, -1)}
             onRemove={removeItem}
             totalAmount={totalAmount}
-            onCheckout={handleCheckout} // Pass handler to modal
+            onCheckout={handleCheckout} 
         />
       </div>
     </Layout>
