@@ -6,7 +6,7 @@ import CategoryButton from "../components/pos/CategoryButton.jsx";
 import Product from "../components/pos/Product.jsx";
 import CartModal from "../components/pos/CartModal";
 import CartItem from "../components/pos/CartItem";
-import { ShoppingCart, PackageOpen, Banknote, CreditCard, Smartphone, Trash2, Loader2 } from "lucide-react"; 
+import { ShoppingCart, PackageOpen, Banknote, CreditCard, Smartphone, Trash2, Loader2, Calculator } from "lucide-react"; 
 import Toast from "../components/Toast";
 import API from '../services/api'; 
 import { useAuth } from '../context/AuthContext'; 
@@ -24,6 +24,9 @@ export default function POS() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentMethod, setPaymentMethod] = useState("Cash");
+
+  const [amountPaid, setAmountPaid] = useState("");
+  const [change, setChange] = useState(0);
 
   const paymentOptions = [
     { id: "Cash", icon: Banknote, label: "Cash" },
@@ -68,6 +71,25 @@ export default function POS() {
     setFiltered(allProducts);
   }, [allProducts]);
 
+
+  const totalAmount = cart.reduce(
+    (acc, item) => acc + item.selling_price * item.quantity,
+    0
+  );
+
+  // --- CHANGE CALCULATION EFFECT ---
+  useEffect(() => {
+    const paid = parseFloat(amountPaid) || 0;
+    const due = parseFloat(totalAmount) || 0;
+    setChange(Math.max(0, paid - due));
+  }, [amountPaid, totalAmount]);
+
+  // --- HELPER FOR QUICK CASH BUTTONS ---
+  const handleQuickAmount = (amount) => {
+    setAmountPaid(amount.toString());
+  };
+
+  const isPaymentSufficient = (parseFloat(amountPaid) || 0) >= totalAmount;
 
   // --- CART LOGIC ---
   const addToCart = (product) => {
@@ -139,20 +161,35 @@ export default function POS() {
   const clearCart = () => {
     if(cart.length > 0 && window.confirm("Are you sure you want to clear the cart?")){
         setCart([]);
+        setAmountPaid(""); 
+        setChange(0);
         setToast({ message: "Cart cleared.", type: "info" });
     }
   };
 
-  const handleCheckout = async () => { 
+  // --- UNIFIED CHECKOUT HANDLER ---
+  // Accepts payment details object for mobile modal, otherwise uses desktop state
+  const handleCheckout = async (paymentDetails = null) => { 
     if (cart.length === 0) return;
+
+    // Determine source of payment data (Mobile Modal vs Desktop Sidebar)
+    const finalMethod = paymentDetails ? paymentDetails.method : paymentMethod;
+    const finalPaid = paymentDetails ? paymentDetails.paid : (paymentMethod === "Cash" ? parseFloat(amountPaid) : totalAmount);
+    const finalChange = paymentDetails ? paymentDetails.change : change;
+
+    // Validate
+    if (finalMethod === "Cash" && (isNaN(finalPaid) || finalPaid < totalAmount)) {
+        setToast({ message: "Insufficient payment amount.", type: "error" });
+        return;
+    }
 
     try {
         const transactionPayload = {
             user_id: user.user_id, 
-            payment_method: paymentMethod, 
+            payment_method: finalMethod, 
             total_amount: totalAmount,
-            amount_paid: totalAmount, 
-            change_due: 0,
+            amount_paid: finalPaid, 
+            change_due: finalChange,
             remarks: 'POS Sale',
             items: cart.map(item => ({
                 product_id: item.product_id, 
@@ -162,12 +199,19 @@ export default function POS() {
             }))
         };
 
-        setToast({ message: `Processing ${paymentMethod} payment...`, type: "info" });
+        setToast({ message: `Processing ${finalMethod} payment...`, type: "info" });
         
         await API.post('/transactions', transactionPayload); 
         
         setToast({ message: "Transaction completed successfully!", type: "success" });
+        
+        // Reset State
         setCart([]);
+        setAmountPaid(""); 
+        setChange(0);
+        setIsCartOpen(false); // Close mobile modal if open
+
+        // "Refresh Page" (Re-fetch Data)
         fetchProductsAndCategories(); 
 
     } catch (error) {
@@ -175,11 +219,6 @@ export default function POS() {
         setToast({ message: errorMessage, type: "error" });
     }
   };
-
-  const totalAmount = cart.reduce(
-    (acc, item) => acc + item.selling_price * item.quantity,
-    0
-  );
 
   return (
     <Layout>
@@ -236,18 +275,15 @@ export default function POS() {
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 lg:pb-0">
                 {filtered.map((p) => {
-                    // 1. Check how many are already in cart
                     const cartItem = cart.find((c) => c.product_id === p.product_id); 
                     const inCartQuantity = cartItem ? cartItem.quantity : 0;
-                    
-                    // 2. Calculate if user can add more based on TOTAL stock
                     const isMaxed = inCartQuantity >= p.quantity;
 
                     return (
                         <Product
                             key={p.product_id} 
                             product={p}
-                            inCartQuantity={inCartQuantity} // 3. Pass to Product
+                            inCartQuantity={inCartQuantity} 
                             onAdd={() => !isMaxed && addToCart(p)}
                             disabled={isMaxed || p.quantity === 0}
                         />
@@ -333,9 +369,61 @@ export default function POS() {
                       </div>
                     </div>
 
-                    <div className="space-y-2 mb-4 pt-4 border-t border-slate-200">
-                        <div className="flex justify-between text-navyBlue font-bold text-xl">
-                            <span>Total</span>
+                    {/* Cash Input Section (Desktop) */}
+                    {paymentMethod === "Cash" && cart.length > 0 && (
+                      <div className="mb-4 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-xs font-bold text-navyBlue flex items-center gap-1">
+                            <Calculator size={14} />
+                            Amount Received
+                          </label>
+                          <div className="flex gap-1.5">
+                            {[100, 500, 1000].map(amt => (
+                              <button
+                                key={amt}
+                                onClick={() => handleQuickAmount(amt)}
+                                className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-colors"
+                              >
+                                {amt}
+                              </button>
+                            ))}
+                            <button
+                                onClick={() => handleQuickAmount(totalAmount)}
+                                className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                              >
+                                Exact
+                              </button>
+                          </div>
+                        </div>
+                        
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₱</span>
+                          <input 
+                            type="number" 
+                            value={amountPaid}
+                            onChange={(e) => setAmountPaid(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-6 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-navyBlue text-sm font-bold text-slate-800"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 mb-4 pt-2 border-t border-slate-200">
+                        <div className="flex justify-between text-slate-600 text-sm">
+                            <span>Subtotal</span>
+                            <span className="font-semibold">₱{totalAmount.toLocaleString()}</span>
+                        </div>
+
+                        {paymentMethod === "Cash" && (
+                          <div className="flex justify-between text-emerald-600 text-lg font-bold">
+                              <span>Change</span>
+                              <span>₱{change.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-navyBlue font-extrabold text-xl pt-1 border-t border-dashed border-slate-300">
+                            <span>Total Due</span>
                             <span>₱{totalAmount.toLocaleString()}</span>
                         </div>
                     </div>
@@ -351,11 +439,20 @@ export default function POS() {
                         </button>
 
                         <button 
-                            disabled={cart.length === 0}
-                            onClick={handleCheckout}
-                            className="col-span-3 bg-navyBlue text-softWhite py-3.5 rounded-xl font-bold text-base hover:bg-darkGreen transition-colors shadow-lg shadow-indigo-900/10 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                            disabled={cart.length === 0 || (paymentMethod === "Cash" && !isPaymentSufficient)}
+                            onClick={() => handleCheckout()} // Desktop call uses state
+                            className={`
+                              col-span-3 bg-navyBlue text-softWhite py-3.5 rounded-xl font-bold text-base hover:bg-darkGreen transition-colors shadow-lg shadow-indigo-900/10 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2
+                              ${(cart.length === 0 || (paymentMethod === "Cash" && !isPaymentSufficient))
+                                ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" 
+                                : "bg-navyBlue text-softWhite hover:bg-darkGreen hover:shadow-emerald-900/20 active:scale-[0.98]"}
+                            `}
                         >
-                            <span>Pay with {paymentMethod}</span>
+                            {paymentMethod === "Cash" && !isPaymentSufficient ? (
+                              <span>Insufficient</span>
+                            ) : (
+                              <span>Pay {paymentMethod}</span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -384,9 +481,7 @@ export default function POS() {
             onDecrease={(id) => updateQuantity(id, -1)}
             onRemove={removeItem}
             totalAmount={totalAmount}
-            paymentMethod={paymentMethod}
-            setPaymentMethod={setPaymentMethod}
-            onCheckout={handleCheckout}
+            onCheckout={handleCheckout} // Pass handler to modal
         />
       </div>
     </Layout>

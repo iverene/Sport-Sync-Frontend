@@ -9,7 +9,8 @@ export default function CartModal({
   onIncrease, 
   onDecrease, 
   onRemove, 
-  totalAmount 
+  totalAmount,
+  onCheckout // New prop to handle payment
 }) {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [amountPaid, setAmountPaid] = useState("");
@@ -38,12 +39,24 @@ export default function CartModal({
     { id: "GCash", icon: Smartphone, label: "GCash" },
   ];
 
-  // Quick set amount paid helper
   const handleQuickAmount = (amount) => {
     setAmountPaid(amount.toString());
   };
 
   const isPaymentSufficient = (parseFloat(amountPaid) || 0) >= totalAmount;
+
+  // Handle Pay Button Click
+  const handlePaymentSubmit = () => {
+      if (paymentMethod === "Cash" && !isPaymentSufficient) return;
+      
+      if (onCheckout) {
+          onCheckout({
+              method: paymentMethod,
+              paid: paymentMethod === "Cash" ? parseFloat(amountPaid) : totalAmount,
+              change: change
+          });
+      }
+  };
 
   return (
     <div 
@@ -226,11 +239,7 @@ export default function CartModal({
 
                 <button 
                     disabled={cart.length === 0 || (paymentMethod === "Cash" && !isPaymentSufficient)}
-                    onClick={() => {
-                      if (paymentMethod === "Cash" && !isPaymentSufficient) return;
-                      // You can pass the change amount back to the parent here if needed
-                      alert(`Processing ${paymentMethod} payment for ₱${totalAmount.toLocaleString()}\nChange: ₱${change.toLocaleString()}`);
-                    }}
+                    onClick={handlePaymentSubmit}
                     className={`
                       col-span-3 py-3.5 rounded-xl font-bold text-lg shadow-lg flex justify-center items-center gap-2 transition-all
                       ${(cart.length === 0 || (paymentMethod === "Cash" && !isPaymentSufficient))
