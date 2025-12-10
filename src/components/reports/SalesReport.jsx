@@ -194,26 +194,26 @@ export default function SalesReport() {
   // Fill missing dates with 0 values to ensure continuous chart line
   const filledSalesTrend = (() => {
     if (!sales_trend) return [];
-    
+
     // Parse dates (ensure robustness)
     const start = new Date(reportData.start_date);
     const end = new Date(reportData.end_date);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return sales_trend;
 
     // Generate all dates in the range
     const allDays = eachDayOfInterval({ start, end });
 
     return allDays.map((day) => {
-      const dateKey = format(day, 'yyyy-MM-dd');
+      const dateKey = format(day, "yyyy-MM-dd");
       // Find existing record or return null
-      const found = sales_trend.find(item => item.date_label === dateKey);
+      const found = sales_trend.find((item) => item.date_label === dateKey);
 
       return {
         // Use a formatted date for the display label (Tooltip/Axis)
-        date_label: format(day, 'MMM dd'), 
+        date_label: format(day, "MMM dd"),
         total_revenue: found ? parseFloat(found.total_revenue) : 0,
-        total_sales_count: found ? parseInt(found.total_sales_count) : 0
+        total_sales_count: found ? parseInt(found.total_sales_count) : 0,
       };
     });
   })();
@@ -276,31 +276,36 @@ export default function SalesReport() {
 
   return (
     <div className="flex flex-col space-y-6" ref={reportRef}>
-      <div className="flex flex-row gap-3 justify-end items-center">
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:text-navyBlue hover:border-navyBlue/30 rounded-lg transition-all shadow-sm"
-        >
-          {loading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <RefreshCw size={16} />
-          )}
-          <span className="hidden sm:inline">Refresh</span>
-        </button>
+      <div className="flex flex-row gap-1 sm:gap-3 justify-between items-center">
+        <div className="flex gap-3">
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:text-navyBlue hover:border-navyBlue/30 rounded-lg transition-all shadow-sm"
+          >
+            {loading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+
+          <div>
+            <ExportButton
+              data={exportData}
+              columns={displayColumns}
+              fileName={fileName}
+              title={`Sales Report - ${dateRange.start} to ${dateRange.end}`}
+              domElementRef={reportRef}
+            />
+          </div>
+        </div>
+
         <CalendarFilter
           activeFilter={activeFilter}
           activeDate={activeDate}
           onChange={handleFilterChange}
-        />
-
-        <ExportButton
-          data={exportData}
-          columns={displayColumns}
-          fileName={fileName}
-          title={`Sales Report - ${dateRange.start} to ${dateRange.end}`}
-          domElementRef={reportRef}
         />
       </div>
 
