@@ -142,7 +142,7 @@ src/
 
   * **[Bagunas Johnrey](https://github.com/BagunasJohnrey)** - Project Leader / Manager, Backend Developer
   * **[De Castro Jeric](https://github.com/decastrojeric)** - Backend Developer
-  * **[Causapin Ivere Grace](https://github.com/iverene)** - Backend & Frontend Developer
+  * **[Causapin Iverene Grace](https://github.com/iverene)** - Backend & Frontend Developer
   * **[Manimtim Hazel Ann](https://github.com/Hazelannmanimtim02)** - Frontend Developer
   * **[Pagkaliwagan Noilee](https://github.com/NoileeAnnPagkaliwagan)** - Frontend Developer
 
