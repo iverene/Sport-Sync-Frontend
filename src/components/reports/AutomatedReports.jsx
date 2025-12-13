@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import ExportButton from "../../components/ExportButton";
 import CalendarFilter from "../../components/CalendarFilter";
+import ExportButton from "../../components/ExportButton"; // Re-added if needed based on imports
 import API from "../../services/api";
 import {
   Clock,
@@ -44,6 +44,10 @@ export default function AutomatedReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 1. ADDED: UI State for the filter
+  const [activeFilter, setActiveFilter] = useState("Daily");
+  const [activeDate, setActiveDate] = useState(new Date());
+
   // Initial date range (Today)
   const [dateRange, setDateRange] = useState({
     start: format(new Date(), "yyyy-MM-dd"),
@@ -72,6 +76,10 @@ export default function AutomatedReports() {
   }, [dateRange]);
 
   const handleDateFilterChange = (filterType, date) => {
+    // 2. ADDED: Update UI state
+    setActiveFilter(filterType);
+    setActiveDate(date);
+
     let start = date,
       end = date;
 
@@ -120,7 +128,6 @@ export default function AutomatedReports() {
   };
 
   // --- CLEAN EXPORT DATA ---
-  // Format dates for export so they don't show as ISO strings
   const exportData = reports.map((report) => ({
     report_type: report.report_type,
     period_start: new Date(report.period_start).toLocaleDateString(),
@@ -182,7 +189,11 @@ export default function AutomatedReports() {
       </div>
 
       <div className="flex justify-end">
-        <CalendarFilter onChange={handleDateFilterChange} />
+        <CalendarFilter 
+            activeFilter={activeFilter} 
+            activeDate={activeDate} 
+            onChange={handleDateFilterChange} 
+        />
       </div>
 
       {/* List of Reports */}
