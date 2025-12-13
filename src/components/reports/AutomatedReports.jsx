@@ -22,7 +22,8 @@ import {
 } from "date-fns";
 
 const columns = [
-  { header: "Report Type", accessor: "report_type" },
+  // ✅ UPDATE: Use "Report Name" and look for "file_path"
+  { header: "Report Name", accessor: "file_path" },
   {
     header: "Period Start",
     accessor: "period_start",
@@ -43,6 +44,9 @@ const columns = [
 export default function AutomatedReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [activeFilter, setActiveFilter] = useState("Daily");
+  const [activeDate, setActiveDate] = useState(new Date());
 
   // Initial date range (Today)
   const [dateRange, setDateRange] = useState({
@@ -72,6 +76,10 @@ export default function AutomatedReports() {
   }, [dateRange]);
 
   const handleDateFilterChange = (filterType, date) => {
+    // 1. UPDATE STATE: Update the active filter state so the UI reflects the change
+    setActiveFilter(filterType);
+    setActiveDate(date);
+
     let start = date,
       end = date;
 
@@ -120,9 +128,9 @@ export default function AutomatedReports() {
   };
 
   // --- CLEAN EXPORT DATA ---
-  // Format dates for export so they don't show as ISO strings
   const exportData = reports.map((report) => ({
-    report_type: report.report_type,
+    // ✅ UPDATE: Export the specific name
+    file_path: report.file_path || `${report.report_type} Report`,
     period_start: new Date(report.period_start).toLocaleDateString(),
     period_end: new Date(report.period_end).toLocaleDateString(),
     created_at: new Date(report.created_at).toLocaleDateString(),
@@ -182,7 +190,11 @@ export default function AutomatedReports() {
       </div>
 
       <div className="flex justify-end">
-        <CalendarFilter onChange={handleDateFilterChange} />
+        <CalendarFilter 
+            activeFilter={activeFilter} 
+            activeDate={activeDate} 
+            onChange={handleDateFilterChange} 
+        />
       </div>
 
       {/* List of Reports */}
@@ -209,8 +221,9 @@ export default function AutomatedReports() {
                     <FileText size={20} />
                   </div>
                   <div>
+                    {/* ✅ UPDATE: Display specific name with fallback */}
                     <p className="font-semibold text-sm text-charcoalBlack">
-                      {report.report_type} Report
+                      {report.file_path || `${report.report_type} Report`}
                     </p>
                     <p className="text-xs text-gray-500">
                       Period:{" "}
