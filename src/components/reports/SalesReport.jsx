@@ -301,6 +301,15 @@ export default function SalesReport() {
             />
           </div>
         </div>
+        
+            <ExportButton
+              data={exportData}
+              columns={displayColumns}
+              fileName={fileName}
+              title={`Sales Report - ${dateRange.start} to ${dateRange.end}`}
+              domElementRef={reportRef}
+            />
+
 
         <CalendarFilter
           activeFilter={activeFilter}
