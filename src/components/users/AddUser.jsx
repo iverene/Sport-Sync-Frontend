@@ -79,8 +79,8 @@ export default function UserManagementHeader({ onUserAdded, setToast }) {
               </button>
             </div>
 
-            {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {/* Modal Body - Added autoComplete="off" to form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-5" autoComplete="off">
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
@@ -93,6 +93,7 @@ export default function UserManagementHeader({ onUserAdded, setToast }) {
                   onChange={handleInputChange}
                   placeholder="Enter full name"
                   required
+                  autoComplete="off"
                   className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
                 />
               </div>
@@ -109,6 +110,7 @@ export default function UserManagementHeader({ onUserAdded, setToast }) {
                   onChange={handleInputChange}
                   placeholder="Enter email "
                   required
+                  autoComplete="off"
                   className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
                 />
               </div>
@@ -119,17 +121,18 @@ export default function UserManagementHeader({ onUserAdded, setToast }) {
                   Username <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="username"
+                  type="text" // Changed from 'username' to 'text' as 'username' is not a valid HTML5 type
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
                   placeholder="Enter Username"
                   required
+                  autoComplete="off"
                   className="w-full px-4 py-3 border-2 border-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
                 />
               </div>
 
-                {/* Password */}
+                {/* Password - Added autoComplete="new-password" */}
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
                   Password <span className="text-red-500">*</span>
@@ -141,6 +144,7 @@ export default function UserManagementHeader({ onUserAdded, setToast }) {
                   onChange={handleInputChange}
                   placeholder="Enter password"
                   required
+                  autoComplete="new-password"
                   className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all bg-slate-50"
                 />
               </div>
