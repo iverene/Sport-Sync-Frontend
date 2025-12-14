@@ -14,16 +14,14 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
   const [adjustType, setAdjustType] = useState("add");
   const [adjustQty, setAdjustQty] = useState(0);
 
-  // ✅ FIX #2: Populate modal when product is opened
+  // Populate modal when product is opened
   useEffect(() => {
     if (product && isOpen) {
       setFormData({
         productName: product.product_name || "",
-        // ✅ FIX #2: Ensure category_id is properly set as number
         categoryId: product.category_id ? Number(product.category_id) : "",
         sellingPrice: product.selling_price || "",
         costPrice: product.cost_price || "",
-        // ✅ FIX #2: Use reorder_level (not reorderPoint)
         reorderPoint: product.reorder_level ?? "",
       });
 
@@ -52,11 +50,23 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
       : parseInt(currentStock) - (parseInt(adjustQty) || 0);
 
   const handleSubmit = () => {
+    const sellingPrice = parseFloat(formData.sellingPrice);
+
+    // [Added] Validation Logic with NaN Check
+    if (isNaN(sellingPrice) || sellingPrice <= 0) {
+        alert("Selling price must be a valid amount greater than 0");
+        return;
+    }
+    if (resultingStock < 0) {
+        alert("Resulting stock cannot be negative");
+        return;
+    }
+
     const updatedProduct = {
       ...product,
       product_name: formData.productName,
       category_id: Number(formData.categoryId),
-      selling_price: parseFloat(formData.sellingPrice),
+      selling_price: sellingPrice,
       cost_price: parseFloat(formData.costPrice),
       reorder_level: parseInt(formData.reorderPoint),
       quantity: resultingStock,
@@ -122,7 +132,6 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-navyBlue"
               >
                 <option value="">Select category</option>
-                {/* ✅ FIX #2: Use category_id instead of id */}
                 {categories.map((cat) => (
                   <option key={cat.category_id} value={cat.category_id}>
                     {cat.category_name}
@@ -143,6 +152,8 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 name="sellingPrice"
                 value={formData.sellingPrice}
                 onChange={handleInputChange}
+                step="0.01"
+                min="0.01" // [Added]
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -156,6 +167,8 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 name="costPrice"
                 value={formData.costPrice}
                 onChange={handleInputChange}
+                step="0.01"
+                min="0" // [Added]
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -169,6 +182,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 name="reorderPoint"
                 value={formData.reorderPoint}
                 onChange={handleInputChange}
+                min="0" // [Added]
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -214,7 +228,10 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 min="0"
                 placeholder="Qty"
                 value={adjustQty === 0 ? "" : adjustQty}
-                onChange={(e) => setAdjustQty(e.target.value)}
+                onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    if (val >= 0) setAdjustQty(e.target.value); 
+                }}
                 className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -235,7 +252,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                     resultingStock < 0 ? "text-red-600" : "text-navyBlue"
                   }`}
                 >
-                  {resultingStock}
+                  {resultingStock < 0 ? "Invalid" : resultingStock}
                 </span>
               </div>
             </div>

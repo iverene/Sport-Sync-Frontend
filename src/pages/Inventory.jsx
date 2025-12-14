@@ -77,7 +77,6 @@ export default function Inventory() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  // 1. UPDATED: Default to "active"
   const [selectedStockLevel, setSelectedStockLevel] = useState("active");
 
   useEffect(() => {
@@ -98,27 +97,22 @@ export default function Inventory() {
     fetchSettings();
   }, []);
 
-  // FETCH DATA FUNCTION
   const fetchData = useCallback(async () => {
     setIsFetching(true);
     let fetchedReport = null;
 
     try {
-      // 1. Fetch Categories
       if (categories.length === 0) {
         const catResponse = await API.get("/categories");
         setCategories(catResponse.data.data || []);
       }
 
-      // 2. Fetch Inventory Report/KPIs
       const reportResponse = await API.get("/reports/inventory");
       fetchedReport = reportResponse.data.data || {};
       setInventoryKpis(fetchedReport.summary);
 
-      // 3. DETERMINE STATUS BASED ON FILTER
       const statusParam = selectedStockLevel === "archived" ? "Archived" : "Active";
 
-      // 4. Fetch Products
       const fetchParams = {
         limit: 1000,
         search: searchQuery,
@@ -129,14 +123,11 @@ export default function Inventory() {
       const prodResponse = await API.get("/products", { params: fetchParams });
       const fetchedProducts = prodResponse.data.data || [];
 
-      // Logic for Stock Level Filtering (Client-side)
       let finalProducts = fetchedProducts;
 
       const criticalThreshold = globalSettings.stock_threshold_critical;
       const lowThreshold = globalSettings.stock_threshold_low;
 
-      // Only filter by stock levels if one of the specific stock filters is selected
-      // "active" and "archived" show all products with that status
       if (
         [
           "in-stock",
@@ -340,6 +331,30 @@ export default function Inventory() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const sellingPrice = parseFloat(formData.sellingPrice);
+    const costPrice = parseFloat(formData.costPrice);
+    const initialStock = parseInt(formData.initialStock);
+    const reorderPoint = parseInt(formData.reorderPoint);
+
+    // --- DATA INTEGRITY CHECKS ---
+    if (isNaN(sellingPrice) || sellingPrice <= 0) {
+        setToast({ message: "Selling price must be a valid amount greater than 0.", type: "error" });
+        return;
+    }
+    if (isNaN(costPrice) || costPrice < 0) {
+        setToast({ message: "Cost price cannot be negative.", type: "error" });
+        return;
+    }
+    if (isNaN(initialStock) || initialStock < 0) {
+        setToast({ message: "Initial stock cannot be negative.", type: "error" });
+        return;
+    }
+    if (isNaN(reorderPoint) || reorderPoint < 0) {
+        setToast({ message: "Reorder point cannot be negative.", type: "error" });
+        return;
+    }
+
     if (
       !formData.productName ||
       !formData.category ||
@@ -358,10 +373,10 @@ export default function Inventory() {
         barcode: formData.barcode,
         product_name: formData.productName,
         category_id: parseInt(formData.category),
-        cost_price: parseFloat(formData.costPrice),
-        selling_price: parseFloat(formData.sellingPrice),
-        quantity: parseInt(formData.initialStock),
-        reorder_level: parseInt(formData.reorderPoint),
+        cost_price: costPrice,
+        selling_price: sellingPrice,
+        quantity: initialStock,
+        reorder_level: reorderPoint,
       };
 
       const response = await API.post("/products", payload);
@@ -369,10 +384,10 @@ export default function Inventory() {
       fetchData();
       setIsModalOpen(false);
     } catch (error) {
-      const msg = error.response?.data?.message || "Failed to add product.";
+      const msg = error.response?.data?.message || (error.response?.data?.errors && error.response.data.errors[0]?.msg) || "Failed to add product.";
       setToast({ message: msg, type: "error" });
     }
-  };
+  };  
 
   const categoryMap = getCategoryMap(categories);
 
@@ -525,7 +540,7 @@ export default function Inventory() {
     };
   });
 
-  // 2. UPDATED FILTER CONFIG: Merged active/archived into stock level filter
+  // --- FILTER CONFIG (Missing Part Restored) ---
   const filterConfig = [
     {
       id: "selectedCategory",
@@ -643,8 +658,8 @@ export default function Inventory() {
                     setFormData({
                       productName: "",
                       category: "",
-                      sellingPrice: "0.00",
-                      costPrice: "0.00",
+                      sellingPrice: "",
+                      costPrice: "",
                       initialStock: "0",
                       reorderPoint: "20",
                       barcode: "",
@@ -751,6 +766,7 @@ export default function Inventory() {
                       onChange={handleInputChange}
                       placeholder="0.00"
                       step="0.01"
+                      min="0.01" 
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
                       required
                     />
@@ -766,6 +782,7 @@ export default function Inventory() {
                       onChange={handleInputChange}
                       placeholder="0.00"
                       step="0.01"
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
                     />
                   </div>
@@ -782,6 +799,7 @@ export default function Inventory() {
                       value={formData.initialStock}
                       onChange={handleInputChange}
                       placeholder="0"
+                      min="0" 
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
                     />
                   </div>
@@ -795,6 +813,7 @@ export default function Inventory() {
                       value={formData.reorderPoint}
                       onChange={handleInputChange}
                       placeholder="10"
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navyBlue focus:border-transparent bg-gray-50"
                     />
                   </div>
