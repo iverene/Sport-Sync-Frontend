@@ -20,7 +20,9 @@ import {
   startOfYear,
   endOfYear,
   format,
-  eachDayOfInterval, // Added for gap filling
+  eachDayOfInterval,
+  eachMonthOfInterval, // Added for monthly aggregation
+  isSameMonth,         // Added for monthly matching
 } from "date-fns";
 import CalendarFilter from "../../components/CalendarFilter";
 import API from "../../services/api";
@@ -191,7 +193,6 @@ export default function SalesReport() {
   const saleChange = ((currentRevenue - prevRevenue) / prevRevenue) * 100;
 
   // --- DATA FILLING LOGIC ---
-  // Fill missing dates with 0 values to ensure continuous chart line
   const filledSalesTrend = (() => {
     if (!sales_trend) return [];
 
@@ -201,7 +202,36 @@ export default function SalesReport() {
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return sales_trend;
 
-    // Generate all dates in the range
+    // --- AGGREGATE MONTHLY IF YEARLY FILTER ---
+    if (activeFilter === "Yearly") {
+      const allMonths = eachMonthOfInterval({ start, end });
+
+      return allMonths.map((monthDate) => {
+        // Filter daily API records that belong to this month
+        const monthlyRecords = sales_trend.filter((item) =>
+          isSameMonth(new Date(item.date_label), monthDate)
+        );
+
+        // Sum up metrics for the month
+        const totalRevenue = monthlyRecords.reduce(
+          (sum, item) => sum + parseFloat(item.total_revenue || 0),
+          0
+        );
+        const totalSales = monthlyRecords.reduce(
+          (sum, item) => sum + parseInt(item.total_sales_count || 0),
+          0
+        );
+
+        return {
+          date_label: format(monthDate, "MMM"), // Display as Month (e.g. Jan, Feb)
+          total_revenue: totalRevenue,
+          total_sales_count: totalSales,
+        };
+      });
+    }
+
+    // --- DEFAULT DAILY LOGIC (For Daily, Weekly, Monthly views) ---
+    // Fill missing dates with 0 values to ensure continuous chart line
     const allDays = eachDayOfInterval({ start, end });
 
     return allDays.map((day) => {
