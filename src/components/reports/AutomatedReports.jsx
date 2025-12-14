@@ -8,7 +8,6 @@ import {
   ChartLine,
   TrendingUp,
   FileText,
-  Download,
   Loader2,
 } from "lucide-react";
 import {
@@ -21,26 +20,6 @@ import {
   format,
 } from "date-fns";
 
-const columns = [
-  // ✅ UPDATE: Use "Report Name" and look for "file_path"
-  { header: "Report Name", accessor: "file_path" },
-  {
-    header: "Period Start",
-    accessor: "period_start",
-    render: (row) => new Date(row.period_start).toLocaleDateString(),
-  },
-  {
-    header: "Period End",
-    accessor: "period_end",
-    render: (row) => new Date(row.period_end).toLocaleDateString(),
-  },
-  {
-    header: "Created Date",
-    accessor: "created_at",
-    render: (row) => new Date(row.created_at).toLocaleDateString(),
-  },
-];
-
 export default function AutomatedReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +27,6 @@ export default function AutomatedReports() {
   const [activeFilter, setActiveFilter] = useState("Daily");
   const [activeDate, setActiveDate] = useState(new Date());
 
-  // Initial date range (Today)
   const [dateRange, setDateRange] = useState({
     start: format(new Date(), "yyyy-MM-dd"),
     end: format(new Date(), "yyyy-MM-dd"),
@@ -76,7 +54,6 @@ export default function AutomatedReports() {
   }, [dateRange]);
 
   const handleDateFilterChange = (filterType, date) => {
-    // 1. UPDATE STATE: Update the active filter state so the UI reflects the change
     setActiveFilter(filterType);
     setActiveDate(date);
 
@@ -109,32 +86,44 @@ export default function AutomatedReports() {
     });
   };
 
-  const handleDownload = async (reportId, type) => {
+  const handleDownload = async (reportId, filePath, reportType, format = "pdf") => {
     try {
+      // 1. Backend expects "excel" or "pdf" string
+      const apiParam = format === "excel" ? "excel" : "pdf";
+      // 2. File extension should be "xlsx" or "pdf"
+      const extension = format === "excel" ? "xlsx" : "pdf";
+
       const response = await API.get(`/reports/download`, {
-        params: { id: reportId, format: "pdf" },
+        params: { 
+            id: reportId, 
+            format: apiParam // Send 'excel' to match backend logic
+        },
         responseType: "blob",
       });
+
+      // Logic to clean up the filename based on backend data
+      let downloadName = `Report_${reportId}`;
+      if (filePath) {
+        // Strip existing extension if present in DB path to avoid double extension
+        const rawName = filePath.split('/').pop();
+        downloadName = rawName.replace(/\.[^/.]+$/, "");
+      } else if (reportType) {
+        downloadName = `${reportType}_Report`;
+      }
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `${type}_Report.pdf`);
+      link.setAttribute("download", `${downloadName}.${extension}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Download failed", error);
+      alert("Failed to download report. Please try again.");
     }
   };
-
-  // --- CLEAN EXPORT DATA ---
-  const exportData = reports.map((report) => ({
-    // ✅ UPDATE: Export the specific name
-    file_path: report.file_path || `${report.report_type} Report`,
-    period_start: new Date(report.period_start).toLocaleDateString(),
-    period_end: new Date(report.period_end).toLocaleDateString(),
-    created_at: new Date(report.created_at).toLocaleDateString(),
-  }));
 
   return (
     <div className="flex flex-col space-y-5">
@@ -142,47 +131,42 @@ export default function AutomatedReports() {
       <div className="default-container">
         <div className="flex items-center gap-2">
           <Clock size={20} className="text-gray-800" />
-          <h3 className="text-gray-800">Automatic Report Schedule</h3>
+          <h3 className="text-gray-800 font-semibold">Automatic Report Schedule</h3>
         </div>
 
         <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6 mt-4">
-          <div className="default-container p-3 w-full flex items-center gap-3">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 w-full flex items-center gap-3">
             <div>
               <Calendar size={25} className="text-deepBlue" />
             </div>
             <div>
-              <p className="text-sm">
-                <span className="font-semibold text-base">Daily Reports</span>
-                <br />
-                <span className="text-gray-800">Generated at 23:59</span>
+              <p className="text-sm leading-tight">
+                <span className="font-semibold block text-slate-800">Daily Reports</span>
+                <span className="text-slate-500 text-xs">Generated at 23:59</span>
               </p>
             </div>
           </div>
 
-          <div className="default-container p-3 w-full flex items-center gap-3">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 w-full flex items-center gap-3">
             <div>
               <ChartLine size={25} className="text-darkGreen" />
             </div>
             <div>
-              <p className="text-sm">
-                <span className="font-semibold text-base">Weekly Reports</span>
-                <br />
-                <span className="text-gray-800">Every Sunday at 23:59</span>
+              <p className="text-sm leading-tight">
+                <span className="font-semibold block text-slate-800">Weekly Reports</span>
+                <span className="text-slate-500 text-xs">Every Sunday at 23:59</span>
               </p>
             </div>
           </div>
 
-          <div className="default-container p-3 w-full flex items-center gap-3">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 w-full flex items-center gap-3">
             <div>
               <TrendingUp size={25} className="text-crimsonRed" />
             </div>
             <div>
-              <p className="text-sm">
-                <span className="font-semibold text-base">Monthly Reports</span>
-                <br />
-                <span className="text-gray-800">
-                  Last day of month at 23:59
-                </span>
+              <p className="text-sm leading-tight">
+                <span className="font-semibold block text-slate-800">Monthly Reports</span>
+                <span className="text-slate-500 text-xs">Last day of month</span>
               </p>
             </div>
           </div>
@@ -190,10 +174,10 @@ export default function AutomatedReports() {
       </div>
 
       <div className="flex justify-end">
-        <CalendarFilter 
-            activeFilter={activeFilter} 
-            activeDate={activeDate} 
-            onChange={handleDateFilterChange} 
+        <CalendarFilter
+          activeFilter={activeFilter}
+          activeDate={activeDate}
+          onChange={handleDateFilterChange}
         />
       </div>
 
@@ -206,40 +190,46 @@ export default function AutomatedReports() {
             <Loader2 className="animate-spin text-navyBlue" />
           </div>
         ) : reports.length === 0 ? (
-          <p className="text-slate-500 text-sm">
-            No automated reports found for the selected period.
-          </p>
+          <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <p className="text-slate-500 text-sm">
+              No automated reports found for the selected period.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {reports.map((report) => (
               <div
                 key={report.report_id}
-                className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-navyBlue/30 transition"
+                // Responsive: Stack on mobile (flex-col), Row on tablet+ (sm:flex-row)
+                className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-navyBlue/30 transition gap-4 sm:gap-0"
               >
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-blue-50 text-navyBlue rounded-lg">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="p-2 bg-blue-50 text-navyBlue rounded-lg shrink-0">
                     <FileText size={20} />
                   </div>
-                  <div>
-                    {/* ✅ UPDATE: Display specific name with fallback */}
-                    <p className="font-semibold text-sm text-charcoalBlack">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-charcoalBlack truncate" title={report.file_path}>
                       {report.file_path || `${report.report_type} Report`}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      Period:{" "}
-                      {new Date(report.period_start).toLocaleDateString()} -{" "}
-                      {new Date(report.period_end).toLocaleDateString()}
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Period: {new Date(report.period_start).toLocaleDateString()} - {new Date(report.period_end).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() =>
-                    handleDownload(report.report_id, report.report_type)
-                  }
-                  className="flex items-center gap-2 text-sm text-navyBlue hover:text-darkGreen font-medium px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  <Download size={16} /> Download
-                </button>
+                
+                <div className="self-end sm:self-auto shrink-0">
+                  <ExportButton
+                    onExport={(format) =>
+                      handleDownload(
+                        report.report_id,
+                        report.file_path,
+                        report.report_type,
+                        format
+                      )
+                    }
+                    className="!w-auto"
+                  />
+                </div>
               </div>
             ))}
           </div>

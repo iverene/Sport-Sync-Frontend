@@ -14,7 +14,9 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
   const [adjustType, setAdjustType] = useState("add");
   const [adjustQty, setAdjustQty] = useState(0);
 
-  // Populate modal when product is opened
+  // --- FIX START ---
+  // We strictly depend on isOpen and product.product_id. 
+  // We do NOT depend on the whole 'product' object to prevent resets during parent re-renders.
   useEffect(() => {
     if (product && isOpen) {
       setFormData({
@@ -29,7 +31,9 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
       setAdjustQty(0);
       setAdjustType("add");
     }
-  }, [product, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.product_id, isOpen]); 
+  // --- FIX END ---
 
   // Unified handler
   const handleInputChange = (e) => {
@@ -52,14 +56,13 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
   const handleSubmit = () => {
     const sellingPrice = parseFloat(formData.sellingPrice);
 
-    // [Added] Validation Logic with NaN Check
     if (isNaN(sellingPrice) || sellingPrice <= 0) {
-        alert("Selling price must be a valid amount greater than 0");
-        return;
+      alert("Selling price must be a valid amount greater than 0");
+      return;
     }
     if (resultingStock < 0) {
-        alert("Resulting stock cannot be negative");
-        return;
+      alert("Resulting stock cannot be negative");
+      return;
     }
 
     const updatedProduct = {
@@ -117,6 +120,8 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 name="productName"
                 value={formData.productName}
                 onChange={handleInputChange}
+                // Added autoComplete off to prevent browser interference
+                autoComplete="off" 
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -153,7 +158,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 value={formData.sellingPrice}
                 onChange={handleInputChange}
                 step="0.01"
-                min="0.01" // [Added]
+                min="0.01"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -168,7 +173,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 value={formData.costPrice}
                 onChange={handleInputChange}
                 step="0.01"
-                min="0" // [Added]
+                min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-navyBlue"
               />
             </div>
@@ -182,7 +187,7 @@ export default function EditProductModal({ isOpen, onClose, product, categories,
                 name="reorderPoint"
                 value={formData.reorderPoint}
                 onChange={handleInputChange}
-                min="0" // [Added]
+                min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-navyBlue"
               />
             </div>
