@@ -44,7 +44,7 @@ export default function Navbar({ setOpenSidebar }) {
         </button>
         <div>
             <h2 className="text-lg font-bold text-navyBlue leading-tight">
-            {user ? `Welcome back, ${user.full_name.split(' ')[0]}` : "Welcome"}
+            {user ? `Welcome back, ${user.full_name.split(' ')[0]}!` : "Welcome"}
             </h2>
         </div>
       </div>
